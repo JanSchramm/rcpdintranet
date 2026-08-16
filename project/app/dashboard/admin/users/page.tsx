@@ -1,83 +1,149 @@
 'use client';
 
-import AdminProtection from '@/components/AdminProtection';
-import { Users, ArrowLeft } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import type { Officer } from '@/lib/database.types';
+import AdminProtection from '@/components/AdminProtection';
+import { Users, Search, ArrowLeft } from 'lucide-react';
 
-export default function UsersManagementPage() {
-    const { officer } = useAuth();
+export default function UserManagementPage() {
+    const [users, setUsers] = useState<Officer[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'all' | 'admin' | 'officer'>('all');
+    const [search, setSearch] = useState('');
+    const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+    async function loadUsers() {
+        setLoading(true);
+        const { data } = await supabase.from('user').select('*').order('lastname', { ascending: true });
+        setUsers((data as Officer[]) ?? []);
+        setLoading(false);
+    }
+
+    useEffect(() => {
+        loadUsers();
+    }, []);
+
+    async function handleRoleChange(userId: string, newRole: 'officer' | 'admin' | 'supervisor') {
+        setUpdatingId(userId);
+        await supabase.from('user').update({ role: newRole } as any).eq('id', userId);
+        await loadUsers();
+        setUpdatingId(null);
+    }
+
+    const filteredUsers = users.filter(u => {
+        const fullName = `${u.firstname ?? ''} ${u.lastname ?? ''}`.toLowerCase();
+        const matchesSearch = fullName.includes(search.toLowerCase()) || (u.rank ?? '').toLowerCase().includes(search.toLowerCase());
+
+        if (activeTab === 'admin') return matchesSearch && u.role === 'admin';
+        if (activeTab === 'officer') return matchesSearch && (u.role === 'officer' || !u.role);
+        return matchesSearch;
+    });
 
     return (
         <AdminProtection>
-            <div className="flex-1 flex flex-col">
-                {/* Header */}
-                <div className="bg-[#0058a0] text-white p-6 border-b-2 border-[#003d6b]">
-                    <div className="max-w-7xl mx-auto">
-                        <Link
-                            href="/dashboard/admin"
-                            className="inline-flex items-center gap-2 mb-4 text-blue-100 hover:text-white transition-colors"
-                        >
-                            <ArrowLeft className="w-4 h-4" />
-                            Zurück zur Administratorkonsole
-                        </Link>
-                        <div className="flex items-center gap-3">
-                            <Users className="w-6 h-6" />
-                            <h1 className="text-3xl font-bold">Benutzerverwaltung</h1>
-                        </div>
+            <div className="p-4 space-y-4 max-w-6xl">
+                <Link href="/dashboard/admin" className="text-xs text-[#0a246a] hover:underline flex items-center gap-1">
+                    <ArrowLeft className="w-3 h-3" /> Zurück zur Administratorkonsole
+                </Link>
+
+                <div className="xp-window">
+                    <div className="xp-titlebar">
+                        <Users className="w-4 h-4" />
+                        <span className="flex-1">Benutzerverwaltung</span>
                     </div>
-                </div>
 
-                {/* Content */}
-                <div className="flex-1 overflow-auto bg-[#ece9d8] p-6">
-                    <div className="max-w-7xl mx-auto">
+                    <div className="p-3 bg-[#ece9d8] space-y-3">
                         {/* Tabs */}
-                        <div className="mb-6 flex gap-2 border-b border-[#808080]">
-                            <button className="px-4 py-2 border-b-2 border-[#0a246a] text-[#0a246a] font-bold text-sm">
-                                Alle Benutzer
+                        <div className="flex border-b border-[#808080] gap-1">
+                            <button
+                                onClick={() => setActiveTab('all')}
+                                className={`px-3 py-1 text-xs font-bold border-t border-x ${activeTab === 'all' ? 'bg-[#ece9d8] border-[#808080] -mb-px pb-1.5' : 'bg-[#d4d0c8] border-transparent text-[#404040]'}`}
+                            >
+                                Alle Benutzer ({users.length})
                             </button>
-                            <button className="px-4 py-2 text-gray-600 hover:text-[#0a246a] font-bold text-sm">
-                                Administratoren
+                            <button
+                                onClick={() => setActiveTab('admin')}
+                                className={`px-3 py-1 text-xs font-bold border-t border-x ${activeTab === 'admin' ? 'bg-[#ece9d8] border-[#808080] -mb-px pb-1.5' : 'bg-[#d4d0c8] border-transparent text-[#404040]'}`}
+                            >
+                                Administratoren ({users.filter(u => u.role === 'admin').length})
                             </button>
-                            <button className="px-4 py-2 text-gray-600 hover:text-[#0a246a] font-bold text-sm">
-                                Inaktiv
-                            </button>
-                        </div>
-
-                        {/* Search & Filter */}
-                        <div className="mb-6 flex gap-4">
-                            <div className="flex-1 xp-sunken bg-white px-3 py-2 flex items-center gap-2">
-                                <input
-                                    type="text"
-                                    placeholder="Benutzer durchsuchen..."
-                                    className="flex-1 bg-transparent outline-none text-sm"
-                                />
-                            </div>
-                            <button className="xp-btn px-6 py-2 font-bold text-sm">
-                                Benutzer hinzufügen
+                            <button
+                                onClick={() => setActiveTab('officer')}
+                                className={`px-3 py-1 text-xs font-bold border-t border-x ${activeTab === 'officer' ? 'bg-[#ece9d8] border-[#808080] -mb-px pb-1.5' : 'bg-[#d4d0c8] border-transparent text-[#404040]'}`}
+                            >
+                                Officers ({users.filter(u => u.role !== 'admin').length})
                             </button>
                         </div>
 
-                        {/* User Table */}
-                        <div className="xp-raised bg-white">
-                            <div className="border-b border-[#808080] p-4 font-bold text-[#0a246a] grid grid-cols-5 gap-4 text-sm bg-[#e0e0e0]">
-                                <div>Name</div>
-                                <div>Rang</div>
-                                <div>Rolle</div>
-                                <div>Abteilung</div>
-                                <div>Aktionen</div>
-                            </div>
-                            <div className="p-4 text-center text-gray-500 text-sm">
-                                <p>Platzhalter: Benutzerliste wird hier angezeigt</p>
-                                <p className="text-xs mt-2">Admin-Funktionen: Rolle ändern, Berechtigungen verwalten, Benutzer deaktivieren</p>
-                            </div>
+                        {/* Suchleiste */}
+                        <div className="flex items-center gap-2">
+                            <Search className="w-4 h-4 text-[#404040]" />
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Benutzer durchsuchen..."
+                                className="xp-input flex-1"
+                            />
                         </div>
 
-                        {/* Info Box */}
-                        <div className="mt-6 p-4 bg-blue-100 border-l-4 border-blue-600">
-                            <p className="text-sm text-blue-800">
-                                <strong>Info:</strong> Hier können Sie alle Benutzer verwalten, ihre Rollen ändern und Berechtigungen anpassen.
-                            </p>
+                        {/* Tabelle */}
+                        <div className="xp-sunken bg-white overflow-x-auto">
+                            <table className="w-full text-left text-xs">
+                                <thead className="bg-[#d4d0c8] text-[#000] font-bold border-b border-[#808080]">
+                                    <tr>
+                                        <th className="p-2">Name</th>
+                                        <th className="p-2">Rang</th>
+                                        <th className="p-2">Dienstnummer</th>
+                                        <th className="p-2">Rolle</th>
+                                        <th className="p-2">Aktionen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan={5} className="p-4 text-center text-[#808080]">
+                                                Lade Benutzer...
+                                            </td>
+                                        </tr>
+                                    ) : filteredUsers.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="p-4 text-center text-[#808080]">
+                                                Keine Benutzer gefunden.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filteredUsers.map(u => (
+                                            <tr key={u.id} className="border-b border-[#ece9d8] hover:bg-[#f0f0f0]">
+                                                <td className="p-2 font-bold text-[#0a246a]">
+                                                    {u.firstname} {u.lastname}
+                                                </td>
+                                                <td className="p-2">{u.rank || 'N/A'}</td>
+                                                <td className="p-2 font-mono">{u.badgenumber ? `#${u.badgenumber}` : 'N/A'}</td>
+                                                <td className="p-2">
+                                                    <span className={`px-1.5 py-0.5 text-[10px] font-bold ${u.role === 'admin' ? 'bg-red-100 text-red-800 border border-red-300' : 'bg-gray-100 text-gray-800'}`}>
+                                                        {u.role ?? 'officer'}
+                                                    </span>
+                                                </td>
+                                                <td className="p-2">
+                                                    <select
+                                                        value={u.role ?? 'officer'}
+                                                        disabled={updatingId === u.id}
+                                                        onChange={e => handleRoleChange(u.id, e.target.value as any)}
+                                                        className="xp-input text-xs h-6 py-0"
+                                                    >
+                                                        <option value="officer">Officer</option>
+                                                        <option value="supervisor">Supervisor</option>
+                                                        <option value="admin">Admin</option>
+                                                    </select>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
