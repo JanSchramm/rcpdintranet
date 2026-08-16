@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { PersonnelFile, Officer } from '@/lib/database.types';
 import { useAuth } from '@/contexts/AuthContext';
-import { FileText, Search, Plus, X, ChevronDown, Shield } from 'lucide-react';
+import { FileText, Search, Plus, ChevronDown, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface FileWithOfficer extends PersonnelFile {
@@ -31,15 +31,18 @@ export default function PersonnelPage() {
       supabase.from('personnel_files').select('*').order('created_at', { ascending: false }),
       supabase.from('user').select('*'),
     ]);
-    const officerMap = Object.fromEntries((offs ?? []).map(o => [o.id, o]));
+
+    const fetchedOffs = (offs as Officer[]) ?? [];
+    const officerMap = Object.fromEntries(fetchedOffs.map(o => [o.id, o]));
+
     setFiles(
-      (pf ?? []).map(f => ({
+      ((pf as PersonnelFile[]) ?? []).map(f => ({
         ...f,
         officer: officerMap[f.officer_id],
         author: officerMap[f.created_by],
       }))
     );
-    setOfficers(offs ?? []);
+    setOfficers(fetchedOffs);
     setLoading(false);
   }
 
@@ -60,7 +63,7 @@ export default function PersonnelPage() {
       officer_id: formOfficerId,
       notes: formNotes.trim(),
       created_by: user!.id,
-    });
+    } as any);
     setSubmitting(false);
     if (error) { setFormError(error.message); return; }
     setShowModal(false);
