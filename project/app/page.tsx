@@ -119,8 +119,9 @@ export default function LandingPage() {
               <label className="text-xs font-bold text-[#404040]">Authentication Method:</label>
             </div>
             <p className="text-xs text-[#404040] leading-relaxed">
-              Click the button below to authenticate via Discord OAuth. Your Discord
-              account must be linked to an active RCPD officer profile.
+              Klicke unten, um dich per Discord OAuth anzumelden. Beim ersten Login wird
+              automatisch ein Zugangsantrag erstellt. Ein Administrator prüft und schaltet
+              dein Konto anschließend frei.
             </p>
 
             <button
@@ -141,15 +142,7 @@ export default function LandingPage() {
               )}
             </button>
 
-            <div className="pt-2 border-t border-[#808080]">
-              <a
-                href="/register"
-                className="xp-btn w-full flex items-center justify-center gap-2 py-2 text-sm font-bold"
-              >
-                <User className="w-4 h-4" />
-                Neuen Zugang registrieren
-              </a>
-            </div>
+
           </div>
 
           {/* Status */}
