@@ -231,18 +231,26 @@ export default function UserManagementPage() {
                                                             </select>
                                                         </td>
                                                         <td className="p-2">
-                                                            <select
-                                                                value={(editForm.division && editForm.division[0]) || ''}
-                                                                onChange={(e) => setEditForm({ ...editForm, division: e.target.value ? [e.target.value] : [] })}
-                                                                className="xp-input text-xs w-full"
-                                                            >
-                                                                <option value="">Keine Division</option>
+                                                            <div className="flex flex-wrap gap-2">
                                                                 {divisions.map(d => (
-                                                                    <option key={d.id} value={d.name}>
-                                                                        {d.name}
-                                                                    </option>
+                                                                    <label key={d.id} className="flex items-center gap-1 cursor-pointer">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={(editForm.division || []).includes(d.name)}
+                                                                            onChange={(e) => {
+                                                                                const current = editForm.division || [];
+                                                                                if (e.target.checked) {
+                                                                                    setEditForm({ ...editForm, division: [...current, d.name] });
+                                                                                } else {
+                                                                                    setEditForm({ ...editForm, division: current.filter(x => x !== d.name) });
+                                                                                }
+                                                                            }}
+                                                                            className="xp-checkbox"
+                                                                        />
+                                                                        <span className="text-xs">{d.name}</span>
+                                                                    </label>
                                                                 ))}
-                                                            </select>
+                                                            </div>
                                                         </td>
                                                         <td className="p-2">
                                                             <select
