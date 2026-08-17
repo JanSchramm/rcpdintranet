@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
 import type { Officer } from '@/lib/database.types';
 import AdminProtection from '@/components/AdminProtection';
 import { Users, Search, ArrowLeft, Check, X } from 'lucide-react';
@@ -19,24 +18,16 @@ export default function UserManagementPage() {
         setLoading(true);
         setError(null);
         try {
-            // Versuche mit created_at zu sortieren, fallback ohne Sortierung
-            let query = supabase.from('user').select('*');
+            const res = await fetch('/api/admin/users');
+            const data = await res.json();
 
-            try {
-                // Versuche mit Sortierung
-                const { data, error: err } = await query.order('created_at', { ascending: false });
-                if (err) throw err;
-                setUsers((data as Officer[]) ?? []);
-            } catch (sortError) {
-                // Fallback: Lade ohne Sortierung
-                console.warn('Sortierung fehlgeschlagen, lade ohne Sortierung:', sortError);
-                const { data, error: err } = await supabase.from('user').select('*');
-                if (err) throw err;
-                setUsers((data as Officer[]) ?? []);
-            }
+            if (!res.ok) throw new Error(data.error || 'Fehler beim Laden');
+            setUsers(data ?? []);
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unbekannter Fehler';
             setError(`Fehler beim Laden: ${errorMsg}`);
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -44,22 +35,27 @@ export default function UserManagementPage() {
         loadUsers();
     }, []);
 
-    async function handleStatusChange(userId: string, newStatus: 'approved' | 'rejected') {
+    async function updateUser(userId: string, updates: Partial<Officer>) {
         setUpdatingId(userId);
-        await (supabase.from('user') as any).update({ status: newStatus }).eq('id', userId);
-        await loadUsers();
-        setUpdatingId(null);
-    }
-    async function handleRoleChange(userId: string, newRole: 'officer' | 'admin' | 'supervisor') {
-        setUpdatingId(userId);
-        await (supabase.from('user') as any).update({ role: newRole }).eq('id', userId);
-        await loadUsers();
-        setUpdatingId(null);
+        try {
+            const res = await fetch('/api/admin/users', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, updates }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            await loadUsers();
+        } catch (e: any) {
+            alert(`Fehler beim Aktualisieren: ${e.message}`);
+        } finally {
+            setUpdatingId(null);
+        }
     }
 
-    const pendingCount = users.filter(u => u.status === 'pending').length;
+    const pendingCount = users.filter((u) => u.status === 'pending').length;
 
-    const filteredUsers = users.filter(u => {
+    const filteredUsers = users.filter((u) => {
         const fullName = `${u.firstname ?? ''} ${u.lastname ?? ''}`.toLowerCase();
         const matchesSearch = fullName.includes(search.toLowerCase());
 
@@ -82,7 +78,6 @@ export default function UserManagementPage() {
                     </div>
 
                     <div className="p-3 bg-[#ece9d8] space-y-3">
-                        {/* Error message */}
                         {error && (
                             <div className="p-3 bg-red-100 border-l-4 border-red-600 text-red-800 text-xs">
                                 <p className="font-bold">Fehler beim Laden der Benutzer:</p>
@@ -108,29 +103,29 @@ export default function UserManagementPage() {
                                 onClick={() => setActiveTab('admin')}
                                 className={`px-3 py-1 text-xs font-bold border-t border-x ${activeTab === 'admin' ? 'bg-[#ece9d8] border-[#808080] -mb-px pb-1.5' : 'bg-[#d4d0c8] border-transparent text-[#404040]'}`}
                             >
-                                Admins ({users.filter(u => u.role === 'admin').length})
+                                Admins ({users.filter((u) => u.role === 'admin').length})
                             </button>
                         </div>
 
-                        {/* Suchleiste */}
+                        {/* Search */}
                         <div className="flex items-center gap-2">
                             <Search className="w-4 h-4 text-[#404040]" />
                             <input
                                 type="text"
                                 value={search}
-                                onChange={e => setSearch(e.target.value)}
+                                onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Benutzer durchsuchen..."
                                 className="xp-input flex-1"
                             />
                         </div>
 
-                        {/* Tabelle */}
+                        {/* Table */}
                         <div className="xp-sunken bg-white overflow-x-auto">
                             <table className="w-full text-left text-xs">
                                 <thead className="bg-[#d4d0c8] text-[#000] font-bold border-b border-[#808080]">
                                     <tr>
                                         <th className="p-2">Name</th>
-                                        <th className="p-2">Rang</th>
+                                        <th className="p-2">Dienstnummer</th>
                                         <th className="p-2">Status</th>
                                         <th className="p-2">Rolle</th>
                                         <th className="p-2">Aktionen</th>
@@ -146,16 +141,16 @@ export default function UserManagementPage() {
                                             <td colSpan={5} className="p-4 text-center text-[#808080]">Keine Benutzer gefunden.</td>
                                         </tr>
                                     ) : (
-                                        filteredUsers.map(u => (
+                                        filteredUsers.map((u) => (
                                             <tr key={u.id} className="border-b border-[#ece9d8] hover:bg-[#f0f0f0]">
                                                 <td className="p-2 font-bold text-[#0a246a]">
                                                     {u.firstname} {u.lastname}
                                                 </td>
-                                                <td className="p-2">{u.rank || 'N/A'}</td>
+                                                <td className="p-2">{u.badgenumber || 'N/A'}</td>
                                                 <td className="p-2">
                                                     <span className={`px-1.5 py-0.5 text-[10px] font-bold ${u.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                                        u.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                                            'bg-yellow-100 text-yellow-800'
+                                                            u.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                                'bg-yellow-100 text-yellow-800'
                                                         }`}>
                                                         {u.status || 'pending'}
                                                     </span>
@@ -164,7 +159,7 @@ export default function UserManagementPage() {
                                                     <select
                                                         value={u.role ?? 'officer'}
                                                         disabled={updatingId === u.id}
-                                                        onChange={e => handleRoleChange(u.id, e.target.value as any)}
+                                                        onChange={(e) => updateUser(u.id, { role: e.target.value as any })}
                                                         className="xp-input text-xs h-6 py-0"
                                                     >
                                                         <option value="officer">Officer</option>
@@ -175,7 +170,7 @@ export default function UserManagementPage() {
                                                 <td className="p-2 flex gap-1">
                                                     {u.status !== 'approved' && (
                                                         <button
-                                                            onClick={() => handleStatusChange(u.id, 'approved')}
+                                                            onClick={() => updateUser(u.id, { status: 'approved' })}
                                                             disabled={updatingId === u.id}
                                                             className="xp-btn px-2 py-0.5 text-[10px] bg-green-200 flex items-center gap-1"
                                                         >
@@ -184,7 +179,7 @@ export default function UserManagementPage() {
                                                     )}
                                                     {u.status !== 'rejected' && (
                                                         <button
-                                                            onClick={() => handleStatusChange(u.id, 'rejected')}
+                                                            onClick={() => updateUser(u.id, { status: 'rejected' })}
                                                             disabled={updatingId === u.id}
                                                             className="xp-btn px-2 py-0.5 text-[10px] bg-red-200 flex items-center gap-1"
                                                         >
