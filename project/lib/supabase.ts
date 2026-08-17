@@ -26,7 +26,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 // };
 export const getSupabaseAdmin = () => {
     // Füge deinen echten service_role Secret Key hier direkt in Anführungszeichen ein:
-    const serviceRoleKey = "HIER_DEINEN_SERVICE_ROLE_KEY_EINFUEGEN";
+    const serviceRoleKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprcHR2ZG55em14eHp4dmFzZnpxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjkxMDQyNiwiZXhwIjoyMTAyNDg2NDI2fQ.csDOtDRVuNM3PwY60nNGPccjYnBudJzrqOFahbE3wcs";
 
     return createClient<Database>(supabaseUrl, serviceRoleKey, {
         auth: {
