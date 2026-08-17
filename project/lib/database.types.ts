@@ -27,6 +27,7 @@ export interface Database {
           role: 'officer' | 'admin' | 'supervisor';
           status: 'pending' | 'approved' | 'rejected';
           created_at: string;
+          discipline_points: number;
         };
         Insert: {
           id: string;
@@ -38,6 +39,7 @@ export interface Database {
           role?: 'officer' | 'admin' | 'supervisor';
           status?: 'pending' | 'approved' | 'rejected';
           created_at?: string;
+          discipline_points?: number;
         };
         Update: {
           id?: string;
@@ -49,6 +51,7 @@ export interface Database {
           role?: 'officer' | 'admin' | 'supervisor';
           status?: 'pending' | 'approved' | 'rejected';
           created_at?: string;
+          discipline_points?: number;
         };
       };
       messages: {
@@ -83,6 +86,7 @@ export interface Database {
           created_at: string;
           created_by: string;
           officer_id: string;
+          title: string;
           notes: string;
         };
         Insert: {
@@ -90,6 +94,7 @@ export interface Database {
           created_at?: string;
           created_by?: string;
           officer_id: string;
+          title?: string;
           notes: string;
         };
         Update: {
@@ -97,6 +102,7 @@ export interface Database {
           created_at?: string;
           created_by?: string;
           officer_id?: string;
+          title?: string;
           notes?: string;
         };
       };
@@ -143,9 +149,10 @@ export interface Officer {
   lastname: string;
   rank: string;
   badgenumber?: string;
-  division?: string[]; // <-- Hier als Array definieren
+  division?: string[];
   role?: 'officer' | 'admin' | 'supervisor';
   status?: 'pending' | 'approved' | 'rejected';
+  discipline_points?: number;
   created_at: string;
 }
 export type Message = Database['public']['Tables']['messages']['Row'];
