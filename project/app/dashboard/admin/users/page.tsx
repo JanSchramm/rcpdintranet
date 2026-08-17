@@ -19,25 +19,24 @@ export default function UserManagementPage() {
         setLoading(true);
         setError(null);
         try {
-            const { data, error: err } = await supabase
-                .from('user')
-                .select('*')
-                .order('created_at', { ascending: false });
+            // Versuche mit created_at zu sortieren, fallback ohne Sortierung
+            let query = supabase.from('user').select('*');
 
-            if (err) {
-                setError(`Fehler beim Laden: ${err.message}`);
-                console.error('Supabase error:', err);
-                setUsers([]);
-            } else {
+            try {
+                // Versuche mit Sortierung
+                const { data, error: err } = await query.order('created_at', { ascending: false });
+                if (err) throw err;
+                setUsers((data as Officer[]) ?? []);
+            } catch (sortError) {
+                // Fallback: Lade ohne Sortierung
+                console.warn('Sortierung fehlgeschlagen, lade ohne Sortierung:', sortError);
+                const { data, error: err } = await supabase.from('user').select('*');
+                if (err) throw err;
                 setUsers((data as Officer[]) ?? []);
             }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unbekannter Fehler';
-            setError(`Fehler: ${errorMsg}`);
-            console.error('Exception:', e);
-            setUsers([]);
-        } finally {
-            setLoading(false);
+            setError(`Fehler beim Laden: ${errorMsg}`);
         }
     }
 
