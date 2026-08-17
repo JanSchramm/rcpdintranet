@@ -28,21 +28,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function getUserData() {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-      if (session?.user) {
-        const { data } = await supabase
-          .from('user')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          setLoading(false);
+          return;
+        }
 
-        setOfficer((data as unknown as Officer) || null);
-      } else {
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          try {
+            const { data, error: dataError } = await supabase
+              .from('user')
+              .select('id, firstname, lastname, badgenumber, rank, division, role, status')
+              .eq('id', session.user.id)
+              .single();
+
+            if (dataError) {
+              console.error('Officer data error:', dataError);
+              // Setze Officer trotzdem auf null um loading zu beenden
+              setOfficer(null);
+            } else {
+              setOfficer((data as unknown as Officer) || null);
+            }
+          } catch (e) {
+            console.error('Exception loading officer:', e);
+            setOfficer(null);
+          }
+        } else {
+          setOfficer(null);
+        }
+      } catch (e) {
+        console.error('getUserData exception:', e);
+        setUser(null);
         setOfficer(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
 
     getUserData();
@@ -50,12 +75,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        const { data } = await supabase
-          .from('user')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        setOfficer((data as unknown as Officer) || null);
+        try {
+          const { data, error: dataError } = await supabase
+            .from('user')
+            .select('id, firstname, lastname, badgenumber, rank, division, role, status')
+            .eq('id', session.user.id)
+            .single();
+
+          if (dataError) {
+            console.error('Officer data error in auth listener:', dataError);
+            setOfficer(null);
+          } else {
+            setOfficer((data as unknown as Officer) || null);
+          }
+        } catch (e) {
+          console.error('Exception in auth listener:', e);
+          setOfficer(null);
+        }
       } else {
         setOfficer(null);
       }
