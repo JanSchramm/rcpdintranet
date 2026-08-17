@@ -1,7 +1,10 @@
+// lib/supabase-admin.ts
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_STORAGE_SUPABASE_URL;
 
 export function getSupabaseAdmin() {
     if (!supabaseUrl) {
@@ -10,10 +13,12 @@ export function getSupabaseAdmin() {
 
     const serviceRoleKey =
         process.env.SUPABASE_SERVICE_ROLE_KEY ||
-        process.env.SUPABASE_SECRET_KEY;
+        process.env.SUPABASE_SECRET_KEY ||
+        process.env.STORAGE_SUPABASE_SERVICE_ROLE_KEY ||
+        process.env.STORAGE_SUPABASE_SECRET_KEY;
 
     if (!serviceRoleKey) {
-        throw new Error('Weder SUPABASE_SERVICE_ROLE_KEY noch SUPABASE_SECRET_KEY sind gesetzt.');
+        throw new Error('Kein Service-Role/Secret-Key in den Umgebungsvariablen gefunden.');
     }
 
     return createClient<Database>(supabaseUrl, serviceRoleKey, {
