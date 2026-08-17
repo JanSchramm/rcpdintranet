@@ -47,12 +47,13 @@ export default function OrgChartPage() {
 
   const filteredOfficers = selectedDivision === 'all'
     ? officers
-    : officers.filter(o => o.division?.includes(selectedDivision));
+    : officers.filter(o => Array.isArray(o.division) && o.division.length > 0 && o.division[0] === selectedDivision);
 
   // Group officers by rank_id
   const groupedByRank: GroupedOfficers = {};
   filteredOfficers.forEach(officer => {
-    const rankKey = officer.rank_id || (typeof officer.rank === 'string' ? officer.rank : null) || 'Unassigned';
+    const rankString = typeof officer.rank === 'string' ? officer.rank : (officer.rank != null ? String(officer.rank) : null);
+    const rankKey = officer.rank_id || rankString || 'Unassigned';
     if (!groupedByRank[rankKey]) {
       groupedByRank[rankKey] = [];
     }
@@ -71,7 +72,16 @@ export default function OrgChartPage() {
 
   function getRankTitle(rankId: string): string {
     const rankDef = ranks.find(r => r.id === rankId);
-    if (rankDef) return rankDef.title;
+    if (rankDef?.title) return rankDef.title;
+    
+    // If no rank definition found by ID, try to match by old rank string
+    if (rankId && rankId !== 'Unassigned') {
+      const matchingRank = ranks.find(r => 
+        r.title && r.title.toLowerCase() === rankId.toLowerCase()
+      );
+      if (matchingRank?.title) return matchingRank.title;
+    }
+    
     return rankId;
   }
 

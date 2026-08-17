@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const [upcomingEvents, setUpcomingEvents] = useState<RosterEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [ranks, setRanks] = useState<Array<{ id?: string; title?: string; order_index?: number }>>([]);
+  const [ranksLoading, setRanksLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
@@ -30,6 +31,7 @@ export default function DashboardPage() {
       setUnreadCount(count ?? 0);
       setUpcomingEvents(evts ?? []);
       if (rankDefs) setRanks(rankDefs);
+      setRanksLoading(false);
       setLoading(false);
     }
     if (officer) load();
