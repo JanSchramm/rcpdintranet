@@ -33,32 +33,40 @@
   * {
     @apply border-[var(--xp-border-dark)];
   }
+
   body {
     background: var(--xp-desktop);
     color: var(--xp-text);
     font-family: 'Tahoma', 'Segoe UI', 'Lucida Console', monospace;
     font-size: 13px;
+    scrollbar-gutter: stable;
+    /* NEU: verhindert Layout-Shift beim Ein-/Ausblenden der Scrollbar */
   }
+
   ::-webkit-scrollbar {
     width: 16px;
     height: 16px;
   }
+
   ::-webkit-scrollbar-track {
     background: #d4d0c8;
     border: 1px solid #808080;
   }
+
   ::-webkit-scrollbar-thumb {
     background: #c0c0c0;
     border: 2px solid #ffffff;
     border-right-color: #808080;
     border-bottom-color: #808080;
   }
+
   ::-webkit-scrollbar-thumb:hover {
     background: #b0b0b0;
   }
 }
 
 @layer components {
+
   /* XP 3D raised border (outset) - for buttons, cards */
   .xp-raised {
     border-top: 1px solid #ffffff;
@@ -121,9 +129,11 @@
     cursor: pointer;
     transition: none;
   }
+
   .xp-btn:hover {
     background: var(--xp-button-face-hover);
   }
+
   .xp-btn:active {
     border-top: 1px solid #404040;
     border-left: 1px solid #404040;
@@ -133,6 +143,7 @@
     background: var(--xp-button-face-active);
     padding: 4px 11px 2px 13px;
   }
+
   .xp-btn:disabled {
     color: #808080;
     text-shadow: 1px 1px 0 #ffffff;
@@ -153,6 +164,7 @@
     padding: 3px 5px;
     outline: none;
   }
+
   .xp-input:focus {
     border-color: var(--xp-selection);
   }
@@ -185,6 +197,7 @@
     gap: 8px;
     height: 22px;
   }
+
   .xp-statusbar-item {
     border-top: 1px solid #808080;
     border-left: 1px solid #808080;
@@ -203,11 +216,13 @@
     border-bottom: 1px solid #808080;
     font-size: 12px;
   }
+
   .xp-menu-item {
     padding: 2px 8px;
     cursor: pointer;
     color: #000000;
   }
+
   .xp-menu-item:hover {
     background: var(--xp-selection);
     color: var(--xp-selection-text);
@@ -223,13 +238,16 @@
     align-items: center;
     gap: 6px;
   }
+
   .xp-list-item:hover {
     background: #d4d0c8;
   }
+
   .xp-list-item-selected {
     background: var(--xp-selection);
     color: var(--xp-selection-text);
   }
+
   .xp-list-item-selected:hover {
     background: var(--xp-selection);
     color: var(--xp-selection-text);
@@ -246,13 +264,16 @@
     gap: 4px;
     border-radius: 0;
   }
+
   .xp-tree-item:hover {
     background: #d4d0c8;
   }
+
   .xp-tree-item-active {
     background: var(--xp-selection);
     color: var(--xp-selection-text);
   }
+
   .xp-tree-item-active:hover {
     background: var(--xp-selection);
     color: var(--xp-selection-text);
@@ -276,6 +297,7 @@
     padding: 8px;
     background: var(--xp-window);
   }
+
   .xp-fieldset-legend {
     font-size: 11px;
     color: #404040;
@@ -286,8 +308,11 @@
   .xp-blink {
     animation: xp-blink 1s step-end infinite;
   }
+
   @keyframes xp-blink {
-    50% { opacity: 0; }
+    50% {
+      opacity: 0;
+    }
   }
 
   /* Scanline overlay for terminal feel */
@@ -295,13 +320,11 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      rgba(0, 0, 0, 0.03),
-      rgba(0, 0, 0, 0.03) 1px,
-      transparent 1px,
-      transparent 3px
-    );
+    background: repeating-linear-gradient(0deg,
+        rgba(0, 0, 0, 0.03),
+        rgba(0, 0, 0, 0.03) 1px,
+        transparent 1px,
+        transparent 3px);
     pointer-events: none;
     z-index: 9999;
   }
