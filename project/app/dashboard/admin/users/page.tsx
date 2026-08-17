@@ -6,6 +6,7 @@ import type { Officer } from '@/lib/database.types';
 import AdminProtection from '@/components/AdminProtection';
 import { Users, Search, ArrowLeft, Check, X, Edit, Save, XCircle } from 'lucide-react';
 import { getDisplayRank } from '@/lib/utils';
+import type { Division } from '@/lib/database.types';
 
 export default function UserManagementPage() {
     const [users, setUsers] = useState<Officer[]>([]);
@@ -17,23 +18,27 @@ export default function UserManagementPage() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState<Partial<Officer>>({});
     const [ranks, setRanks] = useState<Array<{ id?: string; title?: string; order_index?: number }>>([]);
+    const [divisions, setDivisions] = useState<Division[]>([]);
 
     async function loadUsers() {
         setLoading(true);
         setError(null);
         try {
-            const [usersRes, ranksRes] = await Promise.all([
+            const [usersRes, ranksRes, divisionsRes] = await Promise.all([
                 fetch('/api/admin/users'),
                 fetch('/api/admin/ranks'),
+                fetch('/api/admin/divisions'),
             ]);
-            const [usersData, ranksData] = await Promise.all([
+            const [usersData, ranksData, divisionsData] = await Promise.all([
                 usersRes.json(),
                 ranksRes.json(),
+                divisionsRes.json(),
             ]);
 
             if (!usersRes.ok) throw new Error(usersData.error || 'Fehler beim Laden');
             setUsers(usersData ?? []);
             if (ranksRes.ok) setRanks(ranksData ?? []);
+            if (divisionsRes.ok) setDivisions(divisionsData ?? []);
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unbekannter Fehler';
             setError(`Fehler beim Laden: ${errorMsg}`);
@@ -70,7 +75,7 @@ export default function UserManagementPage() {
             firstname: user.firstname,
             lastname: user.lastname,
             badgenumber: user.badgenumber || '',
-            rank: user.rank,
+            rank_id: user.rank_id || ranks.find(r => r.title && r.title.toLowerCase() === (user.rank || '').toLowerCase())?.id || null,
             division: user.division || [],
             role: user.role,
             status: user.status,
@@ -210,22 +215,34 @@ export default function UserManagementPage() {
                                                             />
                                                         </td>
                                                         <td className="p-2">
-                                                            <input
-                                                                type="text"
-                                                                value={editForm.rank ?? ''}
-                                                                onChange={(e) => setEditForm({ ...editForm, rank: e.target.value })}
-                                                                placeholder="Rang"
+                                                            <select
+                                                                value={editForm.rank_id ?? ''}
+                                                                onChange={(e) => setEditForm({ ...editForm, rank_id: e.target.value || null })}
                                                                 className="xp-input text-xs w-full"
-                                                            />
+                                                            >
+                                                                <option value="">Kein Rang</option>
+                                                                {ranks
+                                                                    .filter(r => r.id)
+                                                                    .map(r => (
+                                                                        <option key={r.id} value={r.id}>
+                                                                            {r.title || r.id}
+                                                                        </option>
+                                                                    ))}
+                                                            </select>
                                                         </td>
                                                         <td className="p-2">
-                                                            <input
-                                                                type="text"
-                                                                value={(editForm.division ?? []).join(', ')}
-                                                                onChange={(e) => setEditForm({ ...editForm, division: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                                                                placeholder="Divisionen (kommagetrennt)"
+                                                            <select
+                                                                value={(editForm.division && editForm.division[0]) || ''}
+                                                                onChange={(e) => setEditForm({ ...editForm, division: e.target.value ? [e.target.value] : [] })}
                                                                 className="xp-input text-xs w-full"
-                                                            />
+                                                            >
+                                                                <option value="">Keine Division</option>
+                                                                {divisions.map(d => (
+                                                                    <option key={d.id} value={d.name}>
+                                                                        {d.name}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
                                                         </td>
                                                         <td className="p-2">
                                                             <select

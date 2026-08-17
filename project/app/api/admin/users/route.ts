@@ -35,8 +35,15 @@ export async function PATCH(request: Request) {
 
         const supabaseAdmin = getSupabaseAdmin();
 
+        // If rank_id is provided, ensure it's a valid UUID
+        // If rank_id is empty string, set to null
+        let processedUpdates = { ...updates };
+        if (processedUpdates.rank_id === '') {
+            processedUpdates.rank_id = null;
+        }
+
         const { data, error } = await (supabaseAdmin.from('user') as any)
-            .update(updates)
+            .update(processedUpdates)
             .eq('id', userId)
             .select()
             .single();
