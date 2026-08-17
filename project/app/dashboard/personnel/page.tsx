@@ -13,7 +13,7 @@ interface FileWithOfficer extends PersonnelFile {
 }
 
 export default function PersonnelPage() {
-  const { user } = useAuth();
+  const { user, officer } = useAuth();
   const [files, setFiles] = useState<FileWithOfficer[]>([]);
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [search, setSearch] = useState('');
@@ -25,6 +25,10 @@ export default function PersonnelPage() {
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [officerDropOpen, setOfficerDropOpen] = useState(false);
+  const [editingFile, setEditingFile] = useState<FileWithOfficer | null>(null);
+  const [editNotes, setEditNotes] = useState('');
+  const [editError, setEditError] = useState('');
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   async function loadData() {
     try {
@@ -103,6 +107,7 @@ export default function PersonnelPage() {
         const { error } = await supabase.from('personnel_files').insert({
           officer_id: formOfficerId,
           notes: formNotes.trim(),
+          created_by: user?.id,
         } as any);
         setSubmitting(false);
         if (error) {
@@ -122,6 +127,58 @@ export default function PersonnelPage() {
     }
 
     const selectedOfficer = officers.find(o => o.id === formOfficerId);
+
+  function canEdit(file: FileWithOfficer): boolean {
+    if (!officer) return false;
+    if (officer.role === 'admin' || officer.role === 'supervisor') return true;
+    return file.created_by === user?.id;
+  }
+
+  function openEdit(file: FileWithOfficer) {
+    setEditingFile(file);
+    setEditNotes(file.notes);
+    setEditError('');
+  }
+
+  async function handleUpdate() {
+    if (!editingFile) return;
+    setEditError('');
+    if (!editNotes.trim()) { setEditError('Notes cannot be empty.'); return; }
+    setEditSubmitting(true);
+    try {
+      const { error } = await (supabase.from('personnel_files') as any).update({
+        notes: editNotes.trim(),
+      }).eq('id', editingFile.id);
+      setEditSubmitting(false);
+      if (error) {
+        console.error('Personnel file update error:', error);
+        setEditError(`Failed to update: ${error.message}`);
+        return;
+      }
+      setEditingFile(null);
+      loadData();
+    } catch (err: any) {
+      console.error('Personnel file update exception:', err);
+      setEditError(`Error: ${err.message || 'Unknown error'}`);
+      setEditSubmitting(false);
+    }
+  }
+
+  async function handleDelete(file: FileWithOfficer) {
+    if (!confirm('Are you sure you want to delete this personnel file?')) return;
+    try {
+      const { error } = await supabase.from('personnel_files').delete().eq('id', file.id);
+      if (error) {
+        console.error('Personnel file delete error:', error);
+        alert(`Delete failed: ${error.message}`);
+        return;
+      }
+      loadData();
+    } catch (err: any) {
+      console.error('Personnel file delete exception:', err);
+      alert(`Error: ${err.message || 'Unknown error'}`);
+    }
+  }
 
     return (
       <div className="p-4 space-y-4 max-w-5xl">
@@ -217,6 +274,22 @@ export default function PersonnelPage() {
                           {file.notes}
                         </p>
                       </div>
+                      {canEdit(file) && (
+                        <div className="flex gap-1 mt-2">
+                          <button
+                            onClick={() => openEdit(file)}
+                            className="xp-btn px-2 py-0.5 text-[10px]"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(file)}
+                            className="xp-btn px-2 py-0.5 text-[10px] hover:bg-[#cc0000] hover:text-white"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -297,6 +370,62 @@ export default function PersonnelPage() {
                     className="xp-btn px-4 disabled:opacity-50"
                   >
                     {submitting ? 'Saving...' : 'Create Entry'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Modal */}
+        {editingFile && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+            <div className="xp-window w-full max-w-md">
+              <div className="xp-titlebar">
+                <FileText className="w-4 h-4" />
+                <span className="flex-1">Edit Personnel File Entry</span>
+                <button onClick={() => { setEditingFile(null); setEditError(''); }} className="w-5 h-5 flex items-center justify-center border border-white/30 bg-white/10 text-xs">
+                  x
+                </button>
+              </div>
+              <div className="p-4 bg-[#ece9d8] space-y-3">
+                <div>
+                  <label className="text-xs font-bold text-[#0a246a] mb-1 block">Officer:</label>
+                  <div className="xp-input bg-[#d4d0c8] text-xs py-1.5 px-2">
+                    {editingFile.officer ? `${editingFile.officer.firstname} ${editingFile.officer.lastname} (${editingFile.officer.rank})` : 'Unknown'}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[#0a246a] mb-1 block">Notes:</label>
+                  <textarea
+                    value={editNotes}
+                    onChange={e => setEditNotes(e.target.value)}
+                    rows={5}
+                    placeholder="Enter notes about this officer..."
+                    className="xp-textarea w-full"
+                  />
+                </div>
+
+                {editError && (
+                  <div className="xp-sunken bg-[#fff0f0] p-2 text-xs text-[#cc0000] font-mono">
+                    {editError}
+                  </div>
+                )}
+
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => { setEditingFile(null); setEditError(''); }}
+                    className="xp-btn px-4"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleUpdate}
+                    disabled={editSubmitting}
+                    className="xp-btn px-4 disabled:opacity-50"
+                  >
+                    {editSubmitting ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               </div>
