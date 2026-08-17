@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
+import Sidebar from '@/components/Sidebar';
 import { Clock, LogOut } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -37,5 +38,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  return <>{children}</>;
-}
+  return (
+    <div className="flex bg-[#ece9d8]">
+      <Sidebar />
+      {children}
+    </div>
+  );
