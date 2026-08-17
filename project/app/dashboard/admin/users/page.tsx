@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { Officer } from '@/lib/database.types';
 import AdminProtection from '@/components/AdminProtection';
-import { Users, Search, ArrowLeft, Check, X } from 'lucide-react';
+import { Users, Search, ArrowLeft, Check, X, Edit, Save, XCircle } from 'lucide-react';
 
 export default function UserManagementPage() {
     const [users, setUsers] = useState<Officer[]>([]);
@@ -13,6 +13,8 @@ export default function UserManagementPage() {
     const [search, setSearch] = useState('');
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editForm, setEditForm] = useState<Partial<Officer>>({});
 
     async function loadUsers() {
         setLoading(true);
@@ -53,11 +55,35 @@ export default function UserManagementPage() {
         }
     }
 
+    function startEdit(user: Officer) {
+        setEditingId(user.id);
+        setEditForm({
+            firstname: user.firstname,
+            lastname: user.lastname,
+            badgenumber: user.badgenumber || '',
+            rank: user.rank,
+            division: user.division || [],
+            role: user.role,
+            status: user.status,
+        });
+    }
+
+    function cancelEdit() {
+        setEditingId(null);
+        setEditForm({});
+    }
+
+    async function saveEdit(userId: string) {
+        await updateUser(userId, editForm);
+        setEditingId(null);
+        setEditForm({});
+    }
+
     const pendingCount = users.filter((u) => u.status === 'pending').length;
 
     const filteredUsers = users.filter((u) => {
         const fullName = `${u.firstname ?? ''} ${u.lastname ?? ''}`.toLowerCase();
-        const matchesSearch = fullName.includes(search.toLowerCase());
+        const matchesSearch = fullName.includes(search.toLowerCase()) || (u.badgenumber ?? '').toLowerCase().includes(search.toLowerCase());
 
         if (activeTab === 'pending') return matchesSearch && u.status === 'pending';
         if (activeTab === 'admin') return matchesSearch && u.role === 'admin';
@@ -126,6 +152,8 @@ export default function UserManagementPage() {
                                     <tr>
                                         <th className="p-2">Name</th>
                                         <th className="p-2">Dienstnummer</th>
+                                        <th className="p-2">Rang</th>
+                                        <th className="p-2">Division</th>
                                         <th className="p-2">Status</th>
                                         <th className="p-2">Rolle</th>
                                         <th className="p-2">Aktionen</th>
@@ -134,59 +162,151 @@ export default function UserManagementPage() {
                                 <tbody>
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={5} className="p-4 text-center text-[#808080]">Lade Benutzer...</td>
+                                            <td colSpan={7} className="p-4 text-center text-[#808080]">Lade Benutzer...</td>
                                         </tr>
                                     ) : filteredUsers.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} className="p-4 text-center text-[#808080]">Keine Benutzer gefunden.</td>
+                                            <td colSpan={7} className="p-4 text-center text-[#808080]">Keine Benutzer gefunden.</td>
                                         </tr>
                                     ) : (
                                         filteredUsers.map((u) => (
                                             <tr key={u.id} className="border-b border-[#ece9d8] hover:bg-[#f0f0f0]">
-                                                <td className="p-2 font-bold text-[#0a246a]">
-                                                    {u.firstname} {u.lastname}
-                                                </td>
-                                                <td className="p-2">{u.badgenumber || 'N/A'}</td>
-                                                <td className="p-2">
-                                                    <span className={`px-1.5 py-0.5 text-[10px] font-bold ${u.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                                            u.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                                                'bg-yellow-100 text-yellow-800'
-                                                        }`}>
-                                                        {u.status || 'pending'}
-                                                    </span>
-                                                </td>
-                                                <td className="p-2">
-                                                    <select
-                                                        value={u.role ?? 'officer'}
-                                                        disabled={updatingId === u.id}
-                                                        onChange={(e) => updateUser(u.id, { role: e.target.value as any })}
-                                                        className="xp-input text-xs h-6 py-0"
-                                                    >
-                                                        <option value="officer">Officer</option>
-                                                        <option value="supervisor">Supervisor</option>
-                                                        <option value="admin">Admin</option>
-                                                    </select>
-                                                </td>
-                                                <td className="p-2 flex gap-1">
-                                                    {u.status !== 'approved' && (
-                                                        <button
-                                                            onClick={() => updateUser(u.id, { status: 'approved' })}
-                                                            disabled={updatingId === u.id}
-                                                            className="xp-btn px-2 py-0.5 text-[10px] bg-green-200 flex items-center gap-1"
-                                                        >
-                                                            <Check className="w-3 h-3 text-green-700" /> Akzeptieren
-                                                        </button>
-                                                    )}
-                                                    {u.status !== 'rejected' && (
-                                                        <button
-                                                            onClick={() => updateUser(u.id, { status: 'rejected' })}
-                                                            disabled={updatingId === u.id}
-                                                            className="xp-btn px-2 py-0.5 text-[10px] bg-red-200 flex items-center gap-1"
-                                                        >
-                                                            <X className="w-3 h-3 text-red-700" /> Ablehnen
-                                                        </button>
-                                                    )}
-                                                </td>
+                                                {editingId === u.id ? (
+                                                    <>
+                                                        <td className="p-2">
+                                                            <div className="space-y-1">
+                                                                <input
+                                                                    type="text"
+                                                                    value={editForm.firstname ?? ''}
+                                                                    onChange={(e) => setEditForm({ ...editForm, firstname: e.target.value })}
+                                                                    placeholder="Vorname"
+                                                                    className="xp-input text-xs w-full"
+                                                                />
+                                                                <input
+                                                                    type="text"
+                                                                    value={editForm.lastname ?? ''}
+                                                                    onChange={(e) => setEditForm({ ...editForm, lastname: e.target.value })}
+                                                                    placeholder="Nachname"
+                                                                    className="xp-input text-xs w-full"
+                                                                />
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-2">
+                                                            <input
+                                                                type="text"
+                                                                value={editForm.badgenumber ?? ''}
+                                                                onChange={(e) => setEditForm({ ...editForm, badgenumber: e.target.value })}
+                                                                placeholder="Dienstnummer"
+                                                                className="xp-input text-xs w-full"
+                                                            />
+                                                        </td>
+                                                        <td className="p-2">
+                                                            <input
+                                                                type="text"
+                                                                value={editForm.rank ?? ''}
+                                                                onChange={(e) => setEditForm({ ...editForm, rank: e.target.value })}
+                                                                placeholder="Rang"
+                                                                className="xp-input text-xs w-full"
+                                                            />
+                                                        </td>
+                                                        <td className="p-2">
+                                                            <input
+                                                                type="text"
+                                                                value={(editForm.division ?? []).join(', ')}
+                                                                onChange={(e) => setEditForm({ ...editForm, division: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                                                                placeholder="Divisionen (kommagetrennt)"
+                                                                className="xp-input text-xs w-full"
+                                                            />
+                                                        </td>
+                                                        <td className="p-2">
+                                                            <select
+                                                                value={editForm.status ?? 'pending'}
+                                                                onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
+                                                                className="xp-input text-xs w-full"
+                                                            >
+                                                                <option value="pending">Pending</option>
+                                                                <option value="approved">Approved</option>
+                                                                <option value="rejected">Rejected</option>
+                                                            </select>
+                                                        </td>
+                                                        <td className="p-2">
+                                                            <select
+                                                                value={editForm.role ?? 'officer'}
+                                                                onChange={(e) => setEditForm({ ...editForm, role: e.target.value as any })}
+                                                                className="xp-input text-xs w-full"
+                                                            >
+                                                                <option value="officer">Officer</option>
+                                                                <option value="supervisor">Supervisor</option>
+                                                                <option value="admin">Admin</option>
+                                                            </select>
+                                                        </td>
+                                                        <td className="p-2 flex gap-1">
+                                                            <button
+                                                                onClick={() => saveEdit(u.id)}
+                                                                disabled={updatingId === u.id}
+                                                                className="xp-btn px-2 py-0.5 text-[10px] bg-green-200 flex items-center gap-1"
+                                                            >
+                                                                <Save className="w-3 h-3 text-green-700" /> Speichern
+                                                            </button>
+                                                            <button
+                                                                onClick={cancelEdit}
+                                                                disabled={updatingId === u.id}
+                                                                className="xp-btn px-2 py-0.5 text-[10px] bg-gray-200 flex items-center gap-1"
+                                                            >
+                                                                <XCircle className="w-3 h-3" /> Abbrechen
+                                                            </button>
+                                                        </td>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <td className="p-2 font-bold text-[#0a246a]">
+                                                            {u.firstname} {u.lastname}
+                                                        </td>
+                                                        <td className="p-2">{u.badgenumber || 'N/A'}</td>
+                                                        <td className="p-2">{u.rank || 'N/A'}</td>
+                                                        <td className="p-2">{(u.division || []).join(', ') || 'N/A'}</td>
+                                                        <td className="p-2">
+                                                            <span className={`px-1.5 py-0.5 text-[10px] font-bold ${u.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                                    u.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                                        'bg-yellow-100 text-yellow-800'
+                                                                }`}>
+                                                                {u.status || 'pending'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-2">
+                                                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-800">
+                                                                {u.role || 'officer'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-2 flex gap-1">
+                                                            <button
+                                                                onClick={() => startEdit(u)}
+                                                                disabled={updatingId === u.id}
+                                                                className="xp-btn px-2 py-0.5 text-[10px] bg-blue-200 flex items-center gap-1"
+                                                            >
+                                                                <Edit className="w-3 h-3 text-blue-700" /> Bearbeiten
+                                                            </button>
+                                                            {u.status !== 'approved' && (
+                                                                <button
+                                                                    onClick={() => updateUser(u.id, { status: 'approved' })}
+                                                                    disabled={updatingId === u.id}
+                                                                    className="xp-btn px-2 py-0.5 text-[10px] bg-green-200 flex items-center gap-1"
+                                                                >
+                                                                    <Check className="w-3 h-3 text-green-700" /> Akzeptieren
+                                                                </button>
+                                                            )}
+                                                            {u.status !== 'rejected' && (
+                                                                <button
+                                                                    onClick={() => updateUser(u.id, { status: 'rejected' })}
+                                                                    disabled={updatingId === u.id}
+                                                                    className="xp-btn px-2 py-0.5 text-[10px] bg-red-200 flex items-center gap-1"
+                                                                >
+                                                                    <X className="w-3 h-3 text-red-700" /> Ablehnen
+                                                                </button>
+                                                            )}
+                                                        </td>
+                                                    </>
+                                                )}
                                             </tr>
                                         ))
                                     )}

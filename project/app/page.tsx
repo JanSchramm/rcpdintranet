@@ -9,6 +9,7 @@ import { Shield, Lock, Power, User } from 'lucide-react';
 export default function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [booting, setBooting] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -17,6 +18,17 @@ export default function LandingPage() {
       router.replace('/dashboard');
     }
   }, [user, router]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const error = url.searchParams.get('error');
+    const message = url.searchParams.get('message');
+    if (error === 'auth' && message) {
+      setErrorMessage(`Authentication failed: ${message}`);
+    } else if (error === 'provision' && message) {
+      setErrorMessage(`Account creation failed: ${message}`);
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setBooting(false), 1800);
@@ -111,6 +123,12 @@ export default function LandingPage() {
               are monitored and logged.
             </p>
           </div>
+
+          {errorMessage && (
+            <div className="xp-sunken bg-[#fff0f0] p-3 text-xs text-[#cc0000] font-mono">
+              {errorMessage}
+            </div>
+          )}
 
           {/* Login form */}
           <div className="space-y-3">
