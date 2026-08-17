@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import AdminProtection from '@/components/AdminProtection';
-import { Users, Settings, ShieldAlert, BarChart3, Database, FileText, AlertTriangle } from 'lucide-react';
+import { Users, Settings, ShieldAlert, BarChart3, Database, FileText, AlertTriangle, Users2, FolderTree } from 'lucide-react';
 
 export default function AdminDashboardPage() {
     const { officer } = useAuth();
@@ -91,6 +91,22 @@ export default function AdminDashboardPage() {
                                 <span className="font-bold text-xs">Benutzerverwaltung</span>
                             </div>
                             <p className="text-[11px] text-[#404040]">Verwalte Benutzer, Rollen und Berechtigungen</p>
+                        </Link>
+
+                        <Link href="/dashboard/admin/ranks" className="xp-window p-3 bg-white hover:bg-[#f0f0f0] block transition">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Users2 className="w-5 h-5 text-[#0a246a]" />
+                                <span className="font-bold text-xs">Ränge verwalten</span>
+                            </div>
+                            <p className="text-[11px] text-[#404040]">Definiere Ränge und Hierarchie</p>
+                        </Link>
+
+                        <Link href="/dashboard/admin/divisions" className="xp-window p-3 bg-white hover:bg-[#f0f0f0] block transition">
+                            <div className="flex items-center gap-2 mb-1">
+                                <FolderTree className="w-5 h-5 text-[#0a246a]" />
+                                <span className="font-bold text-xs">Divisions verwalten</span>
+                            </div>
+                            <p className="text-[11px] text-[#404040]">Verwalte Abteilungen und Bureaus</p>
                         </Link>
 
                         <Link href="/dashboard/admin/system" className="xp-window p-3 bg-white hover:bg-[#f0f0f0] block transition">

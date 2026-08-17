@@ -6,7 +6,7 @@
 
 -- 2. Ränge erstellen
 INSERT INTO public.rank_definitions (title, order_index, level, is_active) VALUES
-  ('Chief', 1, 1, true),
+  ('Chief of Police', 1, 1, true),
   ('Deputy Chief', 2, 2, true),
   ('Captain', 3, 3, true),
   ('Lieutenant', 4, 4, true),

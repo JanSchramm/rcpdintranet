@@ -6,6 +6,7 @@ import type { Message, Officer } from '@/lib/database.types';
 import { useAuth } from '@/contexts/AuthContext';
 import { MessageSquare, Send, Inbox, ChevronDown, ArrowLeft, Shield } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
+import { getDisplayRank } from '@/lib/utils';
 
 interface MessageWithOfficers extends Message {
   sender?: Officer;
@@ -20,6 +21,7 @@ export default function MessagesPage() {
   const [selected, setSelected] = useState<MessageWithOfficers | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCompose, setShowCompose] = useState(false);
+  const [ranks, setRanks] = useState<Array<{ id?: string; title?: string; order_index?: number }>>([]);
 
   const [toId, setToId] = useState('');
   const [subject, setSubject] = useState('');
@@ -30,12 +32,15 @@ export default function MessagesPage() {
 
   async function loadMessages() {
     if (!user) return;
-    const [{ data: msgs }, { data: offs }] = await Promise.all([
+    const [{ data: msgs }, { data: offs }, { data: rankDefs }] = await Promise.all([
       supabase.from('messages').select('*').order('created_at', { ascending: false }),
       supabase.from('user').select('*'),
+      supabase.from('rank_definitions').select('id, title, order_index'),
     ]);
     const fetchedMsgs = (msgs as Message[]) ?? [];
     const fetchedOffs = (offs as Officer[]) ?? [];
+
+    if (rankDefs) setRanks(rankDefs);
 
     const officerMap = Object.fromEntries(fetchedOffs.map((o) => [o.id, o]));
     setMessages(
@@ -313,7 +318,7 @@ export default function MessagesPage() {
                   >
                     <span className={!toOfficer ? 'text-[#808080]' : ''}>
                       {toOfficer
-                        ? `${toOfficer.firstname} ${toOfficer.lastname} (${toOfficer.rank})`
+                        ? `${toOfficer.firstname} ${toOfficer.lastname} (${getDisplayRank(toOfficer, ranks)})`
                         : 'Select recipient...'}
                     </span>
                     <ChevronDown className="w-3 h-3" />
@@ -330,7 +335,7 @@ export default function MessagesPage() {
                           className="xp-list-item w-full text-left"
                         >
                           {o.firstname} {o.lastname}
-                          <span className="ml-2 text-[10px] text-[#808080] font-mono">{o.rank}</span>
+                          <span className="ml-2 text-[10px] text-[#808080] font-mono">{getDisplayRank(o, ranks)}</span>
                         </button>
                       ))}
                     </div>

@@ -7,6 +7,7 @@ import type { Officer, RosterEvent } from '@/lib/database.types';
 import { Users, FileText, Calendar, MessageSquare, Clock, Shield, Folder } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { getDisplayRank } from '@/lib/utils';
 
 export default function DashboardPage() {
   const { officer } = useAuth();
@@ -14,18 +15,21 @@ export default function DashboardPage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [upcomingEvents, setUpcomingEvents] = useState<RosterEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ranks, setRanks] = useState<Array<{ id?: string; title?: string; order_index?: number }>>([]);
 
   useEffect(() => {
     async function load() {
-      const [{ data: offs }, { count }, { data: evts }] = await Promise.all([
+      const [{ data: offs }, { count }, { data: evts }, { data: rankDefs }] = await Promise.all([
         supabase.from('user').select('*'),
         supabase.from('messages').select('*', { count: 'exact', head: true })
           .eq('receiver_id', officer?.id ?? ''),
         supabase.from('events').select('*').gte('date', new Date().toISOString()).order('date').limit(5),
+        supabase.from('rank_definitions').select('id, title, order_index'),
       ]);
       setOfficers(offs ?? []);
       setUnreadCount(count ?? 0);
       setUpcomingEvents(evts ?? []);
+      if (rankDefs) setRanks(rankDefs);
       setLoading(false);
     }
     if (officer) load();
@@ -66,7 +70,7 @@ export default function DashboardPage() {
                 {format(new Date(), "EEEE, MMMM d, yyyy")} — RCPD Terminal System v3.1.0
               </p>
               <p className="text-[11px] text-[#404040] mt-0.5">
-                Rank: {officer?.rank || 'N/A'} {officer?.badgenumber ? `| Badge #${officer.badgenumber}` : ''}
+                Rank: {getDisplayRank(officer, ranks)} {officer?.badgenumber ? `| Badge #${officer.badgenumber}` : ''}
                 {officer?.division?.length ? ` | Division: ${officer.division.join(', ')}` : ''}
               </p>
             </div>

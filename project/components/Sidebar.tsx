@@ -18,8 +18,9 @@ import {
   FolderOpen,
   Lock,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getDisplayRank } from '@/lib/utils';
 import { useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 const navSections = [
   {
@@ -48,6 +49,14 @@ export default function Sidebar() {
     'Operations': true,
     'Administration': false,
   });
+  const [ranks, setRanks] = useState<Array<{ id?: string; title?: string; order_index?: number }>>([]);
+
+  // Load ranks for display
+  if (typeof window !== 'undefined') {
+    supabase.from('rank_definitions').select('id, title, order_index').then(({ data }) => {
+      if (data) setRanks(data);
+    });
+  }
 
   const toggleSection = (label: string) => {
     setExpandedSections(prev => ({ ...prev, [label]: !prev[label] }));
@@ -136,14 +145,14 @@ export default function Sidebar() {
                   {officer.firstname?.[0] ?? '?'}{officer.lastname?.[0] ?? ''}
                 </span>
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-[#0a246a] truncate leading-tight">
-                  {officer.firstname} {officer.lastname}
-                </p>
-                <p className="text-[10px] text-[#404040] font-mono truncate">
-                  {officer.rank}{officer.badgenumber ? ` · #${officer.badgenumber}` : ''}
-                </p>
-              </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#0a246a] truncate leading-tight">
+                    {officer.firstname} {officer.lastname}
+                  </p>
+                  <p className="text-[10px] text-[#404040] font-mono truncate">
+                    {getDisplayRank(officer, ranks)}{officer.badgenumber ? ` · #${officer.badgenumber}` : ''}
+                  </p>
+                </div>
             </div>
           </div>
         )}

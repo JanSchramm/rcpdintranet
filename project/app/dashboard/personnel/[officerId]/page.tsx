@@ -7,6 +7,7 @@ import type { Officer, PersonnelFile } from '@/lib/database.types';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Shield, FileText, Plus, ChevronDown, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { getDisplayRank } from '@/lib/utils';
 
 export default function OfficerDetailPage() {
   const params = useParams();
@@ -19,6 +20,7 @@ export default function OfficerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingFile, setEditingFile] = useState<PersonnelFile | null>(null);
+  const [ranks, setRanks] = useState<Array<{ id?: string; title?: string; order_index?: number }>>([]);
 
   const [formTitle, setFormTitle] = useState('');
   const [formNotes, setFormNotes] = useState('');
@@ -37,13 +39,15 @@ export default function OfficerDetailPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const [{ data: offData }, { data: filesData }] = await Promise.all([
+      const [{ data: offData }, { data: filesData }, { data: rankDefs }] = await Promise.all([
         supabase.from('user').select('*').eq('id', officerId).maybeSingle(),
         supabase.from('personnel_files').select('*').eq('officer_id', officerId).order('created_at', { ascending: false }),
+        supabase.from('rank_definitions').select('id, title, order_index'),
       ]);
 
       if (offData) setOfficer(offData as Officer);
       setFiles(filesData ?? []);
+      if (rankDefs) setRanks(rankDefs);
       setDips((offData as Officer | null)?.discipline_points ?? 0);
     } catch (err) {
       console.error('loadData error:', err);
@@ -202,22 +206,22 @@ export default function OfficerDetailPage() {
                 {officer.firstname?.[0] ?? '?'}{officer.lastname?.[0] ?? ''}
               </span>
             </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-base font-bold text-[#0a246a]">
-                {officer.firstname} {officer.lastname}
-              </h1>
-              <p className="text-xs text-[#404040] font-mono mt-0.5">
-                {officer.rank || 'N/A'} {officer.badgenumber ? `| Badge #${officer.badgenumber}` : ''}
-              </p>
-              {officer.division && officer.division.length > 0 && (
-                <p className="text-[10px] text-[#404040] font-mono mt-0.5">
-                  Division: {officer.division.join(', ')}
+              <div className="flex-1 min-w-0">
+                <h1 className="text-base font-bold text-[#0a246a]">
+                  {officer.firstname} {officer.lastname}
+                </h1>
+                <p className="text-xs text-[#404040] font-mono mt-0.5">
+                  {getDisplayRank(officer, ranks)} {officer.badgenumber ? `| Badge #${officer.badgenumber}` : ''}
                 </p>
-              )}
-              <p className="text-[10px] text-[#404040] font-mono mt-0.5">
-                Status: {officer.status || 'unknown'}
-              </p>
-            </div>
+                {officer.division && officer.division.length > 0 && (
+                  <p className="text-[10px] text-[#404040] font-mono mt-0.5">
+                    Division: {officer.division.join(', ')}
+                  </p>
+                )}
+                <p className="text-[10px] text-[#404040] font-mono mt-0.5">
+                  Status: {officer.status || 'unknown'}
+                </p>
+              </div>
           </div>
         </div>
       </div>

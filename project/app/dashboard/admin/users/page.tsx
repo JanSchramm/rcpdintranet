@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Officer } from '@/lib/database.types';
 import AdminProtection from '@/components/AdminProtection';
 import { Users, Search, ArrowLeft, Check, X, Edit, Save, XCircle } from 'lucide-react';
+import { getDisplayRank } from '@/lib/utils';
 
 export default function UserManagementPage() {
     const [users, setUsers] = useState<Officer[]>([]);
@@ -15,16 +16,24 @@ export default function UserManagementPage() {
     const [error, setError] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState<Partial<Officer>>({});
+    const [ranks, setRanks] = useState<Array<{ id?: string; title?: string; order_index?: number }>>([]);
 
     async function loadUsers() {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch('/api/admin/users');
-            const data = await res.json();
+            const [usersRes, ranksRes] = await Promise.all([
+                fetch('/api/admin/users'),
+                fetch('/api/admin/ranks'),
+            ]);
+            const [usersData, ranksData] = await Promise.all([
+                usersRes.json(),
+                ranksRes.json(),
+            ]);
 
-            if (!res.ok) throw new Error(data.error || 'Fehler beim Laden');
-            setUsers(data ?? []);
+            if (!usersRes.ok) throw new Error(usersData.error || 'Fehler beim Laden');
+            setUsers(usersData ?? []);
+            if (ranksRes.ok) setRanks(ranksData ?? []);
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unbekannter Fehler';
             setError(`Fehler beim Laden: ${errorMsg}`);
@@ -263,7 +272,7 @@ export default function UserManagementPage() {
                                                             {u.firstname} {u.lastname}
                                                         </td>
                                                         <td className="p-2">{u.badgenumber || 'N/A'}</td>
-                                                        <td className="p-2">{u.rank || 'N/A'}</td>
+                                                        <td className="p-2">{getDisplayRank(u, ranks)}</td>
                                                         <td className="p-2">{(u.division || []).join(', ') || 'N/A'}</td>
                                                         <td className="p-2">
                                                             <span className={`px-1.5 py-0.5 text-[10px] font-bold ${u.status === 'approved' ? 'bg-green-100 text-green-800' :

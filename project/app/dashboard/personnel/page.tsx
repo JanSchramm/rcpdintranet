@@ -6,6 +6,7 @@ import type { Officer } from '@/lib/database.types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Users, ChevronRight, Shield, Badge as BadgeIcon } from 'lucide-react';
+import { getDisplayRank } from '@/lib/utils';
 
 export default function PersonnelListPage() {
   const { officer, loading: authLoading } = useAuth();
@@ -13,19 +14,17 @@ export default function PersonnelListPage() {
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [ranks, setRanks] = useState<Array<{ id?: string; title?: string; order_index?: number }>>([]);
 
   useEffect(() => {
     async function load() {
-      const { data, error } = await supabase
-        .from('user')
-        .select('*')
-        .order('rank', { ascending: true });
+      const [{ data: offs }, { data: rankDefs }] = await Promise.all([
+        supabase.from('user').select('*').order('rank', { ascending: true }),
+        supabase.from('rank_definitions').select('id, title, order_index'),
+      ]);
 
-      if (error) {
-        console.error('Failed to load officers:', error);
-      } else {
-        setOfficers(data ?? []);
-      }
+      if (offs) setOfficers(offs as Officer[]);
+      if (rankDefs) setRanks(rankDefs);
       setLoading(false);
     }
     load();
@@ -113,7 +112,7 @@ export default function PersonnelListPage() {
                       {o.firstname} {o.lastname}
                     </p>
                     <p className="text-[10px] text-[#404040] font-mono">
-                      {o.rank || 'N/A'}{o.badgenumber ? ` | Badge #${o.badgenumber}` : ''}
+                      {getDisplayRank(o, ranks)}{o.badgenumber ? ` | Badge #${o.badgenumber}` : ''}
                     </p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-[#808080] shrink-0" />
