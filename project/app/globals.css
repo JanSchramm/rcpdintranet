@@ -330,4 +330,69 @@
     pointer-events: none;
     z-index: 9999;
   }
+
+  /* Org Chart Styles */
+  .org-rank-level {
+    position: relative;
+    padding-left: 2rem;
+  }
+
+  .org-rank-level::before {
+    content: '';
+    position: absolute;
+    left: 0.75rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--xp-border-dark);
+  }
+
+  .org-rank-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--xp-titlebar);
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--xp-border-dark);
+  }
+
+  .org-rank-header::before {
+    content: '';
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    width: 1.5rem;
+    height: 2px;
+    background: var(--xp-border-dark);
+  }
+
+  .org-officer-card {
+    background: var(--xp-window);
+    border: 1px solid var(--xp-border-dark);
+    padding: 0.75rem;
+    min-width: 140px;
+    position: relative;
+  }
+
+  .org-officer-card:hover {
+    background: var(--xp-window-dark);
+  }
+
+  .org-connector {
+    width: 2px;
+    height: 1rem;
+    background: var(--xp-border-dark);
+    margin: 0 auto;
+  }
+
+  .org-line-horizontal {
+    height: 2px;
+    background: var(--xp-border-dark);
+    flex: 1;
+  }
 }

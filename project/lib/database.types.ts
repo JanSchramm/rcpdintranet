@@ -28,6 +28,7 @@ export interface Database {
           status: 'pending' | 'approved' | 'rejected';
           created_at: string;
           discipline_points: number;
+          rank_id: string | null;
         };
         Insert: {
           id: string;
@@ -40,6 +41,7 @@ export interface Database {
           status?: 'pending' | 'approved' | 'rejected';
           created_at?: string;
           discipline_points?: number;
+          rank_id?: string | null;
         };
         Update: {
           id?: string;
@@ -52,6 +54,7 @@ export interface Database {
           status?: 'pending' | 'approved' | 'rejected';
           created_at?: string;
           discipline_points?: number;
+          rank_id?: string | null;
         };
       };
       messages: {
@@ -135,6 +138,61 @@ export interface Database {
           created_by?: string | null;
         };
       };
+      rank_definitions: {
+        Row: {
+          id: string;
+          title: string;
+          order_index: number;
+          level: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          order_index?: number;
+          level?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          order_index?: number;
+          level?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      divisions: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -153,8 +211,12 @@ export interface Officer {
   role?: 'officer' | 'admin' | 'supervisor';
   status?: 'pending' | 'approved' | 'rejected';
   discipline_points?: number;
+  rank_id?: string | null;
   created_at: string;
 }
+
+export type RankDefinition = Database['public']['Tables']['rank_definitions']['Row'];
+export type Division = Database['public']['Tables']['divisions']['Row'];
 export type Message = Database['public']['Tables']['messages']['Row'];
 export type PersonnelFile = Database['public']['Tables']['personnel_files']['Row'];
 export type RosterEvent = Database['public']['Tables']['events']['Row'];
