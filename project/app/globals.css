@@ -144,7 +144,6 @@
     border-bottom: 1px solid #ffffff;
     box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #dfdfdf;
     background: var(--xp-button-face-active);
-    padding: 4px 11px 2px 13px;
   }
 
   .xp-btn:disabled {
