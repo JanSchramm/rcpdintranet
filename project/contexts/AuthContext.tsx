@@ -45,11 +45,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .from('user')
               .select('id, firstname, lastname, badgenumber, rank, division, role, status')
               .eq('id', session.user.id)
-              .single();
+              .maybeSingle();
 
             if (dataError) {
               console.error('Officer data error:', dataError);
-              // Setze Officer trotzdem auf null um loading zu beenden
               setOfficer(null);
             } else {
               setOfficer((data as unknown as Officer) || null);
@@ -80,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .from('user')
             .select('id, firstname, lastname, badgenumber, rank, division, role, status')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
 
           if (dataError) {
             console.error('Officer data error in auth listener:', dataError);
