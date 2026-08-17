@@ -10,6 +10,7 @@ interface AuthContextType {
   officer: Officer | null;
   loading: boolean;
   isApproved: boolean;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   officer: null,
   loading: true,
   isApproved: false,
+  signOut: async () => { },
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -67,8 +69,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isApproved = officer?.status === 'approved' || officer?.role === 'admin';
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
+
   return (
-    <AuthContext.Provider value={{ user, officer, loading, isApproved }}>
+    <AuthContext.Provider value={{ user, officer, loading, isApproved, signOut: handleSignOut }}>
       {children}
     </AuthContext.Provider>
   );
