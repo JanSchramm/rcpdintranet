@@ -27,23 +27,37 @@ export default function PersonnelPage() {
   const [officerDropOpen, setOfficerDropOpen] = useState(false);
 
   async function loadData() {
-    const [{ data: pf }, { data: offs }] = await Promise.all([
-      supabase.from('personnel_files').select('*').order('created_at', { ascending: false }),
-      supabase.from('user').select('*'),
-    ]);
+    try {
+      const [{ data: pf, error: pfError }, { data: offs, error: offsError }] = await Promise.all([
+        supabase.from('personnel_files').select('id, created_at, created_by, officer_id, notes').order('created_at', { ascending: false }),
+        supabase.from('user').select('*'),
+      ]);
 
-    const fetchedOffs = (offs as Officer[]) ?? [];
-    const officerMap = Object.fromEntries(fetchedOffs.map(o => [o.id, o]));
+      if (pfError) {
+        console.error('Personnel files query error:', pfError);
+      }
+      if (offsError) {
+        console.error('Officers query error:', offsError);
+      }
 
-    setFiles(
-      ((pf as PersonnelFile[]) ?? []).map(f => ({
-        ...f,
-        officer: officerMap[f.officer_id],
-        author: officerMap[f.created_by],
-      }))
-    );
-    setOfficers(fetchedOffs);
-    setLoading(false);
+      const fetchedOffs = (offs as Officer[]) ?? [];
+      const officerMap = Object.fromEntries(fetchedOffs.map(o => [o.id, o]));
+
+      const validPersonnelFiles = ((pf as PersonnelFile[]) ?? []).filter(f => f && f.id);
+
+      setFiles(
+        validPersonnelFiles.map(f => ({
+          ...f,
+          officer: officerMap[f.officer_id],
+          author: officerMap[f.created_by],
+        }))
+      );
+      setOfficers(fetchedOffs);
+      setLoading(false);
+    } catch (err) {
+      console.error('loadData error:', err);
+      setLoading(false);
+    }
   }
 
   useEffect(() => { loadData(); }, []);
@@ -153,7 +167,7 @@ export default function PersonnelPage() {
               <div className="xp-titlebar h-6">
                 <Shield className="w-3 h-3" />
                 <span className="flex-1 text-[11px]">
-                  File #{file.id.slice(0, 8).toUpperCase()} — {file.officer ? `${file.officer.firstname} ${file.officer.lastname}` : 'Unknown'}
+                  File #{(file.id || 'unknown').slice(0, 8).toUpperCase()} — {file.officer ? `${file.officer.firstname} ${file.officer.lastname}` : 'Unknown'}
                 </span>
                 <span className="text-[10px] font-mono">{format(new Date(file.created_at), 'MMM d, yyyy')}</span>
               </div>
