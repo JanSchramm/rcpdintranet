@@ -10,15 +10,35 @@ import { Users, Search, ArrowLeft, Check, X } from 'lucide-react';
 export default function UserManagementPage() {
     const [users, setUsers] = useState<Officer[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'admin'>('pending');
+    const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'admin'>('all');
     const [search, setSearch] = useState('');
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     async function loadUsers() {
         setLoading(true);
-        const { data } = await supabase.from('user').select('*').order('created_at', { ascending: false });
-        setUsers((data as Officer[]) ?? []);
-        setLoading(false);
+        setError(null);
+        try {
+            const { data, error: err } = await supabase
+                .from('user')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (err) {
+                setError(`Fehler beim Laden: ${err.message}`);
+                console.error('Supabase error:', err);
+                setUsers([]);
+            } else {
+                setUsers((data as Officer[]) ?? []);
+            }
+        } catch (e) {
+            const errorMsg = e instanceof Error ? e.message : 'Unbekannter Fehler';
+            setError(`Fehler: ${errorMsg}`);
+            console.error('Exception:', e);
+            setUsers([]);
+        } finally {
+            setLoading(false);
+        }
     }
 
     useEffect(() => {
@@ -63,6 +83,14 @@ export default function UserManagementPage() {
                     </div>
 
                     <div className="p-3 bg-[#ece9d8] space-y-3">
+                        {/* Error message */}
+                        {error && (
+                            <div className="p-3 bg-red-100 border-l-4 border-red-600 text-red-800 text-xs">
+                                <p className="font-bold">Fehler beim Laden der Benutzer:</p>
+                                <p>{error}</p>
+                            </div>
+                        )}
+
                         {/* Tabs */}
                         <div className="flex border-b border-[#808080] gap-1">
                             <button
