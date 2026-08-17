@@ -9,14 +9,14 @@ import { Shield, Lock, Power, User } from 'lucide-react';
 export default function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [booting, setBooting] = useState(true);
-  const { session } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (session) {
+    if (user) {
       router.replace('/dashboard');
     }
-  }, [session, router]);
+  }, [user, router]);
 
   useEffect(() => {
     const timer = setTimeout(() => setBooting(false), 1800);
