@@ -25,6 +25,7 @@ export interface Database {
           rank: string;
           division: string[];
           role: 'officer' | 'admin' | 'supervisor';
+          status: 'pending' | 'approved' | 'rejected';
           created_at: string;
         };
         Insert: {
@@ -35,6 +36,7 @@ export interface Database {
           rank?: string;
           division?: string[];
           role?: 'officer' | 'admin' | 'supervisor';
+          status?: 'pending' | 'approved' | 'rejected';
           created_at?: string;
         };
         Update: {
@@ -45,6 +47,7 @@ export interface Database {
           rank?: string;
           division?: string[];
           role?: 'officer' | 'admin' | 'supervisor';
+          status?: 'pending' | 'approved' | 'rejected';
           created_at?: string;
         };
       };
