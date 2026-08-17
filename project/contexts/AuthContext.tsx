@@ -77,8 +77,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     loadInitialSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
+
+      console.log('Auth state changed:', event, session?.user?.id);
+
+      // Wait a bit for the callback to finish provisioning
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
       await syncUserState(session?.user ?? null);
     });
 

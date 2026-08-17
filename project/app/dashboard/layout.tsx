@@ -70,10 +70,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               Officer-Profil nicht gefunden
             </h2>
             <p className="text-xs text-[#404040]">
-              Dein Officer-Profil konnte nicht geladen werden. Kontaktiere einen Administrator.
+              Dein Officer-Profil konnte nicht geladen werden. Mögliche Gründe:
             </p>
+            <ul className="text-xs text-[#404040] text-left list-disc pl-4 space-y-1">
+              <li>Dein Account wurde noch nicht freigeschaltet</li>
+              <li>Die Registrierung ist fehlgeschlagen</li>
+              <li>Es gibt ein technisches Problem</li>
+            </ul>
             <p className="text-[10px] font-mono text-[#808080]">
               User ID: {user.id}
+            </p>
+            <p className="text-[10px] font-mono text-[#808080]">
+              Bitte kontaktiere einen Administrator oder melde dich ab und wieder an.
             </p>
             <button
               onClick={() => supabase.auth.signOut()}
