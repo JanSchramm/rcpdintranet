@@ -8,16 +8,15 @@ export function getSupabaseAdmin() {
         throw new Error('NEXT_PUBLIC_SUPABASE_URL ist nicht in den Umgebungsvariablen definiert.');
     }
 
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const serviceRoleKey =
+        process.env.SUPABASE_SERVICE_ROLE_KEY ||
+        process.env.SUPABASE_SECRET_KEY;
 
     if (!serviceRoleKey) {
-        throw new Error('SUPABASE_SERVICE_ROLE_KEY ist nicht in den Umgebungsvariablen definiert.');
+        throw new Error('Weder SUPABASE_SERVICE_ROLE_KEY noch SUPABASE_SECRET_KEY sind gesetzt.');
     }
 
     return createClient<Database>(supabaseUrl, serviceRoleKey, {
-        auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-        },
+        auth: { persistSession: false, autoRefreshToken: false },
     });
 }
