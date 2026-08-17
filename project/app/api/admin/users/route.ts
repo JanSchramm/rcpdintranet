@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +18,11 @@ export async function GET() {
     } catch (err: any) {
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
+}
+
+// POST: Aktualisiert Benutzerdaten (z. B. Rolle/Freigabe) via dieselben Admin-Validierungen.
+export async function POST(request: Request) {
+    return PATCH(request);
 }
 
 // PATCH: Aktualisiert Benutzerdaten (z. B. Rolle/Freigabe)
