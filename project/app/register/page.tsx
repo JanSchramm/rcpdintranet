@@ -14,7 +14,7 @@ export default function RegisterPage() {
     await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
-        redirectTo: `${window.location.origin}/api/register`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
   };
