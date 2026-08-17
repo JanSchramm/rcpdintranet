@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+    overflow-y: scroll;
+  }
+
   :root {
     --xp-bg: #3a6ea5;
     --xp-desktop: #0058a0;
@@ -39,8 +44,6 @@
     color: var(--xp-text);
     font-family: 'Tahoma', 'Segoe UI', 'Lucida Console', monospace;
     font-size: 13px;
-    scrollbar-gutter: stable;
-    /* NEU: verhindert Layout-Shift beim Ein-/Ausblenden der Scrollbar */
   }
 
   ::-webkit-scrollbar {
