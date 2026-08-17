@@ -108,6 +108,7 @@ export interface Database {
           date: string;
           event_type: string;
           created_at: string;
+          created_by: string | null;
         };
         Insert: {
           id?: string;
@@ -116,6 +117,7 @@ export interface Database {
           date: string;
           event_type?: string;
           created_at?: string;
+          created_by?: string | null;
         };
         Update: {
           id?: string;
@@ -124,6 +126,7 @@ export interface Database {
           date?: string;
           event_type?: string;
           created_at?: string;
+          created_by?: string | null;
         };
       };
     };

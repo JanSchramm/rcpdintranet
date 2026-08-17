@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import type { RosterEvent } from '@/lib/database.types';
-import { Calendar, Plus, X, ChevronLeft, ChevronRight, Clock, AlignLeft } from 'lucide-react';
+import { Calendar, Plus, X, ChevronLeft, ChevronRight, Clock, AlignLeft, Edit, Trash2 } from 'lucide-react';
 import {
   format,
   startOfMonth,
@@ -37,11 +38,13 @@ const eventTypeDot: Record<string, string> = {
 };
 
 export default function CalendarPage() {
+  const { officer, loading: authLoading } = useAuth();
   const [events, setEvents] = useState<RosterEvent[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<RosterEvent | null>(null);
 
   const [formTitle, setFormTitle] = useState('');
   const [formDesc, setFormDesc] = useState('');
@@ -59,6 +62,13 @@ export default function CalendarPage() {
 
   useEffect(() => { loadEvents(); }, []);
 
+  // Check if current user can edit/delete an event
+  function canEditEvent(event: RosterEvent): boolean {
+    if (!officer) return false;
+    if (officer.role === 'admin' || officer.role === 'supervisor') return true;
+    return event.created_by === officer.id;
+  }
+
   const calStart = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 });
   const calEnd = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 });
   const calDays = eachDayOfInterval({ start: calStart, end: calEnd });
@@ -69,6 +79,7 @@ export default function CalendarPage() {
   const selectedDayEvents = selectedDay ? eventsOnDay(selectedDay) : [];
 
   function openCreateModal() {
+    setEditingEvent(null);
     setFormTitle('');
     setFormDesc('');
     setFormDate(selectedDay ? format(selectedDay, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
@@ -78,21 +89,70 @@ export default function CalendarPage() {
     setShowModal(true);
   }
 
+  function openEditModal(event: RosterEvent) {
+    if (!canEditEvent(event)) return;
+    setEditingEvent(event);
+    setFormTitle(event.title);
+    setFormDesc(event.description || '');
+    setFormDate(format(new Date(event.date), 'yyyy-MM-dd'));
+    setFormTime(format(new Date(event.date), 'HH:mm'));
+    setFormType(event.event_type);
+    setFormError('');
+    setShowModal(true);
+  }
+
   async function handleCreate() {
     setFormError('');
     if (!formTitle.trim()) { setFormError('Title is required.'); return; }
     if (!formDate) { setFormError('Date is required.'); return; }
     setSubmitting(true);
+
     const isoDate = new Date(`${formDate}T${formTime}:00`).toISOString();
-    const { error } = await (supabase.from('events') as any).insert({
-      title: formTitle.trim(),
-      description: formDesc.trim() || null,
-      date: isoDate,
-      event_type: formType,
-    });
-    setSubmitting(false);
-    if (error) { setFormError(error.message); return; }
-    setShowModal(false);
+
+    try {
+      if (editingEvent) {
+        // Update existing event
+        const { error } = await (supabase.from('events') as any)
+          .update({
+            title: formTitle.trim(),
+            description: formDesc.trim() || null,
+            date: isoDate,
+            event_type: formType,
+          })
+          .eq('id', editingEvent.id);
+
+        if (error) { setFormError(error.message); return; }
+      } else {
+        // Create new event
+        const { error } = await (supabase.from('events') as any).insert({
+          title: formTitle.trim(),
+          description: formDesc.trim() || null,
+          date: isoDate,
+          event_type: formType,
+          created_by: officer?.id,
+        });
+
+        if (error) { setFormError(error.message); return; }
+      }
+
+      setSubmitting(false);
+      setShowModal(false);
+      loadEvents();
+    } catch (err: any) {
+      setFormError(err.message || 'An error occurred');
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDelete(event: RosterEvent) {
+    if (!canEditEvent(event)) return;
+    if (!confirm('Are you sure you want to delete this event?')) return;
+
+    const { error } = await supabase.from('events').delete().eq('id', event.id);
+    if (error) {
+      alert('Error deleting event: ' + error.message);
+      return;
+    }
     loadEvents();
   }
 
@@ -161,13 +221,11 @@ export default function CalendarPage() {
                 <button
                   key={day.toISOString()}
                   onClick={() => setSelectedDay(day)}
-                  className={`min-h-[64px] p-1 border-r border-b border-[#d4d0c8] text-left last:border-r-0 hover:bg-[#d4d0c8] ${
-                    selected ? 'bg-[#316ac5]/20 ring-1 ring-[#316ac5] ring-inset' : ''
-                  } ${!inMonth ? 'opacity-40 bg-[#e8e5d8]' : ''}`}
+                  className={`min-h-[64px] p-1 border-r border-b border-[#d4d0c8] text-left last:border-r-0 hover:bg-[#d4d0c8] ${selected ? 'bg-[#316ac5]/20 ring-1 ring-[#316ac5] ring-inset' : ''
+                    } ${!inMonth ? 'opacity-40 bg-[#e8e5d8]' : ''}`}
                 >
-                  <span className={`inline-flex w-5 h-5 items-center justify-center text-[11px] font-mono ${
-                    today ? 'bg-[#cc0000] text-white font-bold' : selected ? 'bg-[#316ac5] text-white' : 'text-[#404040]'
-                  }`}>
+                  <span className={`inline-flex w-5 h-5 items-center justify-center text-[11px] font-mono ${today ? 'bg-[#cc0000] text-white font-bold' : selected ? 'bg-[#316ac5] text-white' : 'text-[#404040]'
+                    }`}>
                     {format(day, 'd')}
                   </span>
                   <div className="mt-0.5 space-y-0.5">
@@ -208,7 +266,7 @@ export default function CalendarPage() {
                 <div key={e.id} className="xp-panel p-2.5">
                   <div className="flex items-start gap-2">
                     <span className={`mt-0.5 w-2.5 h-2.5 shrink-0 ${eventTypeDot[e.event_type] ?? eventTypeDot.General}`} />
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs font-bold text-[#0a246a]">{e.title}</p>
                       <div className="flex items-center gap-1 mt-0.5">
                         <Clock className="w-3 h-3 text-[#808080]" />
@@ -224,6 +282,24 @@ export default function CalendarPage() {
                         </div>
                       )}
                     </div>
+                    {canEditEvent(e) && (
+                      <div className="flex gap-1 shrink-0">
+                        <button
+                          onClick={() => openEditModal(e)}
+                          className="xp-btn p-1 text-[9px]"
+                          title="Edit event"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(e)}
+                          className="xp-btn p-1 text-[9px] hover:bg-[#cc0000] hover:text-white"
+                          title="Delete event"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
@@ -232,13 +308,13 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Create Event Modal */}
+      {/* Create/Edit Event Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="xp-window w-full max-w-md">
             <div className="xp-titlebar">
               <Calendar className="w-4 h-4" />
-              <span className="flex-1">New Event</span>
+              <span className="flex-1">{editingEvent ? 'Edit Event' : 'New Event'}</span>
               <button onClick={() => setShowModal(false)} className="w-5 h-5 flex items-center justify-center border border-white/30 bg-white/10 text-xs">
                 x
               </button>
@@ -310,7 +386,7 @@ export default function CalendarPage() {
                   disabled={submitting}
                   className="xp-btn px-4 disabled:opacity-50"
                 >
-                  {submitting ? 'Creating...' : 'Create Event'}
+                  {submitting ? (editingEvent ? 'Saving...' : 'Creating...') : (editingEvent ? 'Save Event' : 'Create Event')}
                 </button>
               </div>
             </div>
