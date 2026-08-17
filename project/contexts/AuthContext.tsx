@@ -29,12 +29,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadOfficerData(userId: string) {
+    const syncUserState = async (nextUser: User | null) => {
+      if (!isMounted) return;
+
+      setUser(nextUser);
+
+      if (!nextUser) {
+        setOfficer(null);
+        setLoading(false);
+        return;
+      }
+
       try {
         const { data, error: dataError } = await supabase
           .from('user')
           .select('id, firstname, lastname, badgenumber, rank, division, role, status')
-          .eq('id', userId)
+          .eq('id', nextUser.id)
           .maybeSingle();
 
         if (!isMounted) return;
@@ -51,20 +61,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } finally {
         if (isMounted) setLoading(false);
       }
-    }
+    };
 
-    // Get initial session
+    const loadInitialSession = async () => {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        if (isMounted) setLoading(false);
+        return;
+      }
+
+      await syncUserState(session?.user ?? null);
+    };
+
+    loadInitialSession();
+
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMounted) return;
-
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        await loadOfficerData(session.user.id);
-      } else {
-        setOfficer(null);
-        setLoading(false);
-      }
+      await syncUserState(session?.user ?? null);
     });
 
     return () => {

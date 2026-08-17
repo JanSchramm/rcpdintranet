@@ -140,6 +140,16 @@ export default function LandingPage() {
                 </>
               )}
             </button>
+
+            <div className="pt-2 border-t border-[#808080]">
+              <a
+                href="/register"
+                className="xp-btn w-full flex items-center justify-center gap-2 py-2 text-sm font-bold"
+              >
+                <User className="w-4 h-4" />
+                Neuen Zugang registrieren
+              </a>
+            </div>
           </div>
 
           {/* Status */}

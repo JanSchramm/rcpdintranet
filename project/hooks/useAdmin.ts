@@ -8,7 +8,7 @@ export function useAdmin() {
     const isAdmin = officer?.role === 'admin';
 
     return {
-        isAdmin,
+        isAdmin: Boolean(isAdmin),
         loading,
         officer,
     };
