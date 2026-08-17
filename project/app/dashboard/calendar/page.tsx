@@ -60,12 +60,20 @@ export default function CalendarPage() {
     setLoading(false);
   }
 
-  useEffect(() => { loadEvents(); }, []);
+  useEffect(() => {
+    // Only load events after auth is loaded
+    if (!authLoading) {
+      loadEvents();
+    }
+  }, [authLoading]);
 
   // Check if current user can edit/delete an event
   function canEditEvent(event: RosterEvent): boolean {
-    if (!officer) return false;
+    // Wait for auth to load before checking permissions
+    if (authLoading || !officer) return false;
+    // Admins and supervisors can always edit
     if (officer.role === 'admin' || officer.role === 'supervisor') return true;
+    // Regular officers can edit if they created it
     return event.created_by === officer.id;
   }
 
@@ -121,7 +129,11 @@ export default function CalendarPage() {
           })
           .eq('id', editingEvent.id);
 
-        if (error) { setFormError(error.message); return; }
+        if (error) {
+          console.error('Update error:', { event_id: editingEvent.id, error, user_id: officer?.id });
+          setFormError(`Update failed: ${error.message}`);
+          return;
+        }
       } else {
         // Create new event
         const { error } = await (supabase.from('events') as any).insert({
@@ -132,33 +144,42 @@ export default function CalendarPage() {
           created_by: officer?.id,
         });
 
-        if (error) { setFormError(error.message); return; }
+        if (error) {
+          console.error('Insert error:', { error, user_id: officer?.id });
+          setFormError(`Create failed: ${error.message}`);
+          return;
+        }
       }
 
       setSubmitting(false);
       setShowModal(false);
       loadEvents();
     } catch (err: any) {
+      console.error('Unexpected error:', err);
       setFormError(err.message || 'An error occurred');
       setSubmitting(false);
     }
   }
 
   async function handleDelete(event: RosterEvent) {
-    if (!canEditEvent(event)) return;
+    if (!canEditEvent(event)) {
+      alert('You do not have permission to delete this event.');
+      return;
+    }
     if (!confirm('Are you sure you want to delete this event?')) return;
 
-    // 1. Sichere den aktuellen Zustand für den Fall eines Fehlers
+    // Sichere den aktuellen Zustand für den Fall eines Fehlers
     const previousEvents = [...events];
 
-    // 2. Event sofort aus dem lokalen UI-State entfernen (0ms Verzögerung für den User)
+    // Event sofort aus dem lokalen UI-State entfernen (optimistic update)
     setEvents(prev => prev.filter(e => e.id !== event.id));
 
-    // 3. Im Hintergrund in der Datenbank löschen (kein loadEvents nötig)
+    // Im Hintergrund in der Datenbank löschen
     const { error } = await supabase.from('events').delete().eq('id', event.id);
 
-    // 4. Bei einem Fehler den alten Zustand wiederherstellen
+    // Bei einem Fehler den alten Zustand wiederherstellen
     if (error) {
+      console.error('Delete error:', { event_id: event.id, error });
       setEvents(previousEvents);
       alert('Error deleting event: ' + error.message);
     }

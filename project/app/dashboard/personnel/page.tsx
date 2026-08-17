@@ -59,16 +59,26 @@ export default function PersonnelPage() {
     if (!formOfficerId) { setFormError('Please select an officer.'); return; }
     if (!formNotes.trim()) { setFormError('Notes cannot be empty.'); return; }
     setSubmitting(true);
-    const { error } = await supabase.from('personnel_files').insert({
-      officer_id: formOfficerId,
-      notes: formNotes.trim(),
-    } as any);
-    setSubmitting(false);
-    if (error) { setFormError(error.message); return; }
-    setShowModal(false);
-    setFormOfficerId('');
-    setFormNotes('');
-    loadData();
+    try {
+      const { error } = await supabase.from('personnel_files').insert({
+        officer_id: formOfficerId,
+        notes: formNotes.trim(),
+      } as any);
+      setSubmitting(false);
+      if (error) {
+        console.error('Personnel file insert error:', error);
+        setFormError(`Failed to create entry: ${error.message}`);
+        return;
+      }
+      setShowModal(false);
+      setFormOfficerId('');
+      setFormNotes('');
+      loadData();
+    } catch (err: any) {
+      console.error('Personnel file exception:', err);
+      setFormError(`Error: ${err.message || 'Unknown error'}`);
+      setSubmitting(false);
+    }
   }
 
   const selectedOfficer = officers.find(o => o.id === formOfficerId);
