@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import AdminProtection from '@/components/AdminProtection';
 import { Users, Settings, ShieldAlert, BarChart3, Database, FileText, AlertTriangle, Users2, FolderTree } from 'lucide-react';
+import { getDisplayRank } from '@/lib/utils';
 
 export default function AdminDashboardPage() {
     const { officer } = useAuth();
@@ -42,7 +43,7 @@ export default function AdminDashboardPage() {
                     <div className="p-4 bg-[#0a246a] text-white">
                         <h1 className="text-xl font-bold">Administratorkonsole</h1>
                         <p className="text-xs text-[#d4d0c8]">
-                            Willkommen, {officer ? `${officer.rank} ${officer.firstname} ${officer.lastname}` : 'Administrator'}
+                            Willkommen, {officer ? `${getDisplayRank(officer)} ${officer.firstname} ${officer.lastname}` : 'Administrator'}
                         </p>
                     </div>
                 </div>

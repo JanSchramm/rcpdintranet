@@ -11,14 +11,14 @@ export function getDisplayRank(officer: { rank?: string | null; rank_id?: string
   // Try to resolve from rank_definitions first
   const rankDef = ranks.find(r => r.id === officer.rank_id);
   if (rankDef?.title) {
-    if (rankDef.order_index === 1 || rankDef.title.toLowerCase() === 'chief') {
+    if (rankDef.order_index === 1 || typeof rankDef.title === 'string' && rankDef.title.toLowerCase() === 'chief') {
       return 'Chief of Police';
     }
     return rankDef.title;
   }
 
   // Fallback to rank string
-  if (officer.rank) {
+  if (officer.rank && typeof officer.rank === 'string') {
     if (officer.rank.toLowerCase() === 'chief') {
       return 'Chief of Police';
     }

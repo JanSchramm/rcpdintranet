@@ -52,7 +52,7 @@ export default function OrgChartPage() {
   // Group officers by rank_id
   const groupedByRank: GroupedOfficers = {};
   filteredOfficers.forEach(officer => {
-    const rankKey = officer.rank_id || officer.rank || 'Unassigned';
+    const rankKey = officer.rank_id || (typeof officer.rank === 'string' ? officer.rank : null) || 'Unassigned';
     if (!groupedByRank[rankKey]) {
       groupedByRank[rankKey] = [];
     }

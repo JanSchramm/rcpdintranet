@@ -33,7 +33,8 @@ export default function PersonnelListPage() {
   const filtered = officers.filter(o => {
     const q = search.toLowerCase();
     const name = `${o.firstname ?? ''} ${o.lastname ?? ''}`.toLowerCase();
-    return name.includes(q) || (o.rank ?? '').toLowerCase().includes(q) || (o.badgenumber ?? '').toLowerCase().includes(q);
+    const rankValue = typeof o.rank === 'string' ? o.rank : '';
+    return name.includes(q) || rankValue.toLowerCase().includes(q) || (o.badgenumber ?? '').toLowerCase().includes(q);
   });
 
   return (
