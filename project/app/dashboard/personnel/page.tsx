@@ -58,18 +58,16 @@ export default function PersonnelPage() {
       console.log('Before officerMap creation, fetchedOffs:', fetchedOffs);
 
       // Verify each officer has an id
-      const validOfficers = fetchedOffs.filter(o => o && typeof o === 'object' && 'id' in o && o.id);
+      const validOfficers = fetchedOffs.filter((o): o is Officer => !!o && typeof o === 'object' && 'id' in o && typeof (o as any).id === 'string');
       console.log('Valid officers:', validOfficers);
 
-      const officerMap = new Map(validOfficers.map(o => [o.id, o]).filter(([id]) => id));
+      const officerMap = new Map(validOfficers.map(o => [o.id, o] as [string, Officer]));
       console.log('Officer map size:', officerMap.size);
 
       // Safely handle personnel files
       const personnelFilesArray = Array.isArray(pf) ? pf : [];
-      const validPersonnelFiles = personnelFilesArray
-        .filter((f): f is PersonnelFile => {
-          return f !== null && f !== undefined && typeof f === 'object' && 'id' in f && f.id !== undefined;
-        });
+      const validPersonnelFiles: PersonnelFile[] = personnelFilesArray
+        .filter((f): boolean => !!f && typeof f === 'object' && 'id' in f && typeof (f as any).id === 'string');
 
       console.log('Valid personnel files:', validPersonnelFiles);
 
@@ -78,12 +76,14 @@ export default function PersonnelPage() {
           ...f,
           officer: officerMap.get(f.officer_id),
           author: officerMap.get(f.created_by),
-          setOfficers(fetchedOffs);
+        }))
+      );
+      setOfficers(fetchedOffs);
       setLoading(false);
-        } catch (err) {
-          console.error('loadData error:', err);
-          setLoading(false);
-        }
+    } catch (err) {
+      console.error('loadData error:', err);
+      setLoading(false);
+    }
     }
 
   useEffect(() => { loadData(); }, []);

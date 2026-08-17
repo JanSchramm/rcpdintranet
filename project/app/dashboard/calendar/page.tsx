@@ -300,7 +300,7 @@ export default function CalendarPage() {
                       <div className="flex items-center gap-1 mt-0.5">
                         <Clock className="w-3 h-3 text-[#808080]" />
                         <span className="text-[11px] text-[#404040] font-mono">{format(new Date(e.date), 'HH:mm')}</span>
-                        <span className="ml-1 text-[10px] font-mono px-1 py-0.5 text-white ${eventTypeColors[e.event_type] ?? eventTypeColors.General}" style={{ backgroundColor: e.event_type === 'Training' ? '#008000' : e.event_type === 'Patrol' ? '#0000cc' : e.event_type === 'Meeting' ? '#cc6600' : e.event_type === 'Operation' ? '#cc0000' : '#404040' }}>
+                        <span className={`ml-1 text-[10px] font-mono px-1 py-0.5 text-white ${eventTypeColors[e.event_type] ?? eventTypeColors.General}`} style={{ backgroundColor: e.event_type === 'Training' ? '#008000' : e.event_type === 'Patrol' ? '#0000cc' : e.event_type === 'Meeting' ? '#cc6600' : e.event_type === 'Operation' ? '#cc0000' : '#404040' }}>
                           {e.event_type}
                         </span>
                       </div>
