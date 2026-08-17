@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
-import { Clock, LogOut } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -44,3 +44,4 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {children}
     </div>
   );
+}
