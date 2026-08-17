@@ -144,7 +144,7 @@ export default function OrgPage() {
                           </div>
                           {officer.division && officer.division.length > 0 && (
                             <div className="flex flex-wrap gap-1">
-                              {officer.division.map((div) => (
+                              {officer.division.map((div: string) => (
                                 <span key={div} className="text-[10px] font-mono px-1 py-0.5 bg-[#d4d0c8] xp-sunken text-[#404040]">
                                   {div}
                                 </span>

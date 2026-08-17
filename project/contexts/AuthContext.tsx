@@ -1,88 +1,77 @@
 'use client';
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from 'react';
-import type { Session, User } from '@supabase/supabase-js';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Officer } from '@/lib/database.types';
+import type { User } from '@supabase/supabase-js';
 
-interface AuthContextValue {
-  session: Session | null;
+interface AuthContextType {
   user: User | null;
   officer: Officer | null;
   loading: boolean;
-  signOut: () => Promise<void>;
+  isApproved: boolean;
 }
 
-const AuthContext = createContext<AuthContextValue>({
-  session: null,
+const AuthContext = createContext<AuthContextType>({
   user: null,
   officer: null,
   loading: true,
-  signOut: async () => {},
+  isApproved: false,
 });
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
   const [officer, setOfficer] = useState<Officer | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function loadOfficer(userId: string) {
-    const { data } = await supabase
-      .from('user')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-    setOfficer(data);
-  }
-
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    async function getUserData() {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+
       if (session?.user) {
-        (async () => {
-          await loadOfficer(session.user.id);
-          setLoading(false);
-        })();
+        const { data } = await supabase
+          .from('user')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        setOfficer((data as unknown as Officer) || null);
       } else {
-        setLoading(false);
+        setOfficer(null);
       }
+      setLoading(false);
+    }
+
+    getUserData();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        const { data } = await supabase
+          .from('user')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        setOfficer((data as unknown as Officer) || null);
+      } else {
+        setOfficer(null);
+      }
+      setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        (async () => {
-          if (session?.user) {
-            await loadOfficer(session.user.id);
-          } else {
-            setOfficer(null);
-          }
-        })();
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
+  const isApproved = officer?.status === 'approved' || officer?.role === 'admin';
 
   return (
-    <AuthContext.Provider
-      value={{ session, user: session?.user ?? null, officer, loading, signOut }}
-    >
+    <AuthContext.Provider value={{ user, officer, loading, isApproved }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export const useAuth = () => useContext(AuthContext);

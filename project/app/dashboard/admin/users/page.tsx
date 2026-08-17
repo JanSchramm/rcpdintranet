@@ -5,18 +5,18 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import type { Officer } from '@/lib/database.types';
 import AdminProtection from '@/components/AdminProtection';
-import { Users, Search, ArrowLeft } from 'lucide-react';
+import { Users, Search, ArrowLeft, Check, X } from 'lucide-react';
 
 export default function UserManagementPage() {
     const [users, setUsers] = useState<Officer[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'all' | 'admin' | 'officer'>('all');
+    const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'admin'>('pending');
     const [search, setSearch] = useState('');
     const [updatingId, setUpdatingId] = useState<string | null>(null);
 
     async function loadUsers() {
         setLoading(true);
-        const { data } = await supabase.from('user').select('*').order('lastname', { ascending: true });
+        const { data } = await supabase.from('user').select('*').order('created_at', { ascending: false });
         setUsers((data as Officer[]) ?? []);
         setLoading(false);
     }
@@ -25,19 +25,27 @@ export default function UserManagementPage() {
         loadUsers();
     }, []);
 
+    async function handleStatusChange(userId: string, newStatus: 'approved' | 'rejected') {
+        setUpdatingId(userId);
+        await (supabase.from('user') as any).update({ status: newStatus }).eq('id', userId);
+        await loadUsers();
+        setUpdatingId(null);
+    }
     async function handleRoleChange(userId: string, newRole: 'officer' | 'admin' | 'supervisor') {
         setUpdatingId(userId);
-        await supabase.from('user').update({ role: newRole } as any).eq('id', userId);
+        await (supabase.from('user') as any).update({ role: newRole }).eq('id', userId);
         await loadUsers();
         setUpdatingId(null);
     }
 
+    const pendingCount = users.filter(u => u.status === 'pending').length;
+
     const filteredUsers = users.filter(u => {
         const fullName = `${u.firstname ?? ''} ${u.lastname ?? ''}`.toLowerCase();
-        const matchesSearch = fullName.includes(search.toLowerCase()) || (u.rank ?? '').toLowerCase().includes(search.toLowerCase());
+        const matchesSearch = fullName.includes(search.toLowerCase());
 
+        if (activeTab === 'pending') return matchesSearch && u.status === 'pending';
         if (activeTab === 'admin') return matchesSearch && u.role === 'admin';
-        if (activeTab === 'officer') return matchesSearch && (u.role === 'officer' || !u.role);
         return matchesSearch;
     });
 
@@ -51,12 +59,18 @@ export default function UserManagementPage() {
                 <div className="xp-window">
                     <div className="xp-titlebar">
                         <Users className="w-4 h-4" />
-                        <span className="flex-1">Benutzerverwaltung</span>
+                        <span className="flex-1">Benutzerverwaltung & Freigaben</span>
                     </div>
 
                     <div className="p-3 bg-[#ece9d8] space-y-3">
                         {/* Tabs */}
                         <div className="flex border-b border-[#808080] gap-1">
+                            <button
+                                onClick={() => setActiveTab('pending')}
+                                className={`px-3 py-1 text-xs font-bold border-t border-x ${activeTab === 'pending' ? 'bg-[#ece9d8] border-[#808080] -mb-px pb-1.5' : 'bg-[#d4d0c8] border-transparent text-[#404040]'}`}
+                            >
+                                Wartend auf Freigabe ({pendingCount})
+                            </button>
                             <button
                                 onClick={() => setActiveTab('all')}
                                 className={`px-3 py-1 text-xs font-bold border-t border-x ${activeTab === 'all' ? 'bg-[#ece9d8] border-[#808080] -mb-px pb-1.5' : 'bg-[#d4d0c8] border-transparent text-[#404040]'}`}
@@ -67,13 +81,7 @@ export default function UserManagementPage() {
                                 onClick={() => setActiveTab('admin')}
                                 className={`px-3 py-1 text-xs font-bold border-t border-x ${activeTab === 'admin' ? 'bg-[#ece9d8] border-[#808080] -mb-px pb-1.5' : 'bg-[#d4d0c8] border-transparent text-[#404040]'}`}
                             >
-                                Administratoren ({users.filter(u => u.role === 'admin').length})
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('officer')}
-                                className={`px-3 py-1 text-xs font-bold border-t border-x ${activeTab === 'officer' ? 'bg-[#ece9d8] border-[#808080] -mb-px pb-1.5' : 'bg-[#d4d0c8] border-transparent text-[#404040]'}`}
-                            >
-                                Officers ({users.filter(u => u.role !== 'admin').length})
+                                Admins ({users.filter(u => u.role === 'admin').length})
                             </button>
                         </div>
 
@@ -96,7 +104,7 @@ export default function UserManagementPage() {
                                     <tr>
                                         <th className="p-2">Name</th>
                                         <th className="p-2">Rang</th>
-                                        <th className="p-2">Dienstnummer</th>
+                                        <th className="p-2">Status</th>
                                         <th className="p-2">Rolle</th>
                                         <th className="p-2">Aktionen</th>
                                     </tr>
@@ -104,15 +112,11 @@ export default function UserManagementPage() {
                                 <tbody>
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={5} className="p-4 text-center text-[#808080]">
-                                                Lade Benutzer...
-                                            </td>
+                                            <td colSpan={5} className="p-4 text-center text-[#808080]">Lade Benutzer...</td>
                                         </tr>
                                     ) : filteredUsers.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} className="p-4 text-center text-[#808080]">
-                                                Keine Benutzer gefunden.
-                                            </td>
+                                            <td colSpan={5} className="p-4 text-center text-[#808080]">Keine Benutzer gefunden.</td>
                                         </tr>
                                     ) : (
                                         filteredUsers.map(u => (
@@ -121,10 +125,12 @@ export default function UserManagementPage() {
                                                     {u.firstname} {u.lastname}
                                                 </td>
                                                 <td className="p-2">{u.rank || 'N/A'}</td>
-                                                <td className="p-2 font-mono">{u.badgenumber ? `#${u.badgenumber}` : 'N/A'}</td>
                                                 <td className="p-2">
-                                                    <span className={`px-1.5 py-0.5 text-[10px] font-bold ${u.role === 'admin' ? 'bg-red-100 text-red-800 border border-red-300' : 'bg-gray-100 text-gray-800'}`}>
-                                                        {u.role ?? 'officer'}
+                                                    <span className={`px-1.5 py-0.5 text-[10px] font-bold ${u.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                        u.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                            'bg-yellow-100 text-yellow-800'
+                                                        }`}>
+                                                        {u.status || 'pending'}
                                                     </span>
                                                 </td>
                                                 <td className="p-2">
@@ -138,6 +144,26 @@ export default function UserManagementPage() {
                                                         <option value="supervisor">Supervisor</option>
                                                         <option value="admin">Admin</option>
                                                     </select>
+                                                </td>
+                                                <td className="p-2 flex gap-1">
+                                                    {u.status !== 'approved' && (
+                                                        <button
+                                                            onClick={() => handleStatusChange(u.id, 'approved')}
+                                                            disabled={updatingId === u.id}
+                                                            className="xp-btn px-2 py-0.5 text-[10px] bg-green-200 flex items-center gap-1"
+                                                        >
+                                                            <Check className="w-3 h-3 text-green-700" /> Akzeptieren
+                                                        </button>
+                                                    )}
+                                                    {u.status !== 'rejected' && (
+                                                        <button
+                                                            onClick={() => handleStatusChange(u.id, 'rejected')}
+                                                            disabled={updatingId === u.id}
+                                                            className="xp-btn px-2 py-0.5 text-[10px] bg-red-200 flex items-center gap-1"
+                                                        >
+                                                            <X className="w-3 h-3 text-red-700" /> Ablehnen
+                                                        </button>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))

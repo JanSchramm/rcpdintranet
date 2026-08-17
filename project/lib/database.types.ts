@@ -131,7 +131,17 @@ export interface Database {
   };
 }
 
-export type Officer = Database['public']['Tables']['user']['Row'];
+export interface Officer {
+  id: string;
+  firstname: string;
+  lastname: string;
+  rank: string;
+  badgenumber?: string;
+  division?: string[]; // <-- Hier als Array definieren
+  role?: 'officer' | 'admin' | 'supervisor';
+  status?: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+}
 export type Message = Database['public']['Tables']['messages']['Row'];
 export type PersonnelFile = Database['public']['Tables']['personnel_files']['Row'];
 export type RosterEvent = Database['public']['Tables']['events']['Row'];
