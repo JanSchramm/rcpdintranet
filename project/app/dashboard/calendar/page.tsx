@@ -148,12 +148,20 @@ export default function CalendarPage() {
     if (!canEditEvent(event)) return;
     if (!confirm('Are you sure you want to delete this event?')) return;
 
+    // 1. Sichere den aktuellen Zustand für den Fall eines Fehlers
+    const previousEvents = [...events];
+
+    // 2. Event sofort aus dem lokalen UI-State entfernen (0ms Verzögerung für den User)
+    setEvents(prev => prev.filter(e => e.id !== event.id));
+
+    // 3. Im Hintergrund in der Datenbank löschen (kein loadEvents nötig)
     const { error } = await supabase.from('events').delete().eq('id', event.id);
+
+    // 4. Bei einem Fehler den alten Zustand wiederherstellen
     if (error) {
+      setEvents(previousEvents);
       alert('Error deleting event: ' + error.message);
-      return;
     }
-    loadEvents();
   }
 
   return (

@@ -62,7 +62,6 @@ export default function PersonnelPage() {
     const { error } = await supabase.from('personnel_files').insert({
       officer_id: formOfficerId,
       notes: formNotes.trim(),
-      created_by: user!.id,
     } as any);
     setSubmitting(false);
     if (error) { setFormError(error.message); return; }

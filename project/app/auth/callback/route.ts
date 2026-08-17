@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
 export async function GET(request: Request) {
@@ -7,16 +7,13 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get('code');
 
   if (code) {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
+    const supabase = createSupabaseServerClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-    // Beim allerersten Discord-Login: Officer-Profil mit Status "pending" anlegen,
-    // falls noch keins existiert. Bestehende Profile werden NIE überschrieben,
-    // damit Admin-Freigaben/-Bearbeitungen bei jedem weiteren Login erhalten bleiben.
+    if (error) {
+      console.error('exchangeCodeForSession fehlgeschlagen:', error.message);
+    }
+
     if (!error && data.user) {
       try {
         const admin = getSupabaseAdmin();
@@ -43,9 +40,6 @@ export async function GET(request: Request) {
           });
         }
       } catch (provisionError) {
-        // Provisioning-Fehler dürfen den Login nicht blockieren – der User landet
-        // dann auf der "Officer-Profil nicht gefunden"-Seite und ein Admin kann
-        // manuell nachhelfen bzw. das Log wird in den Vercel Function Logs sichtbar.
         console.error('Auto-provisioning fehlgeschlagen:', provisionError);
       }
     }
