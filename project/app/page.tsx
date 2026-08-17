@@ -10,6 +10,7 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [booting, setBooting] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -23,10 +24,16 @@ export default function LandingPage() {
     const url = new URL(window.location.href);
     const error = url.searchParams.get('error');
     const message = url.searchParams.get('message');
+    const registration = url.searchParams.get('registration');
+
     if (error === 'auth' && message) {
       setErrorMessage(`Authentication failed: ${message}`);
     } else if (error === 'provision' && message) {
       setErrorMessage(`Account creation failed: ${message}`);
+    } else if (error === 'callback' && message) {
+      setErrorMessage(`Registration error: ${message}`);
+    } else if (registration === 'success') {
+      setSuccessMessage('Registration successful! Your account is pending approval. Please wait for an administrator to approve your access.');
     }
   }, []);
 
@@ -130,37 +137,50 @@ export default function LandingPage() {
             </div>
           )}
 
-          {/* Login form */}
+          {successMessage && (
+            <div className="xp-sunken bg-[#f0fff4] p-3 text-xs text-[#006600] font-mono">
+              {successMessage}
+            </div>
+          )}
+
+          {/* Login/Register form */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <User className="w-4 h-4 text-[#404040]" />
-              <label className="text-xs font-bold text-[#404040]">Authentication Method:</label>
+              <label className="text-xs font-bold text-[#404040]">Authentication:</label>
             </div>
             <p className="text-xs text-[#404040] leading-relaxed">
-              Klicke unten, um dich per Discord OAuth anzumelden. Beim ersten Login wird
-              automatisch ein Zugangsantrag erstellt. Ein Administrator prüft und schaltet
-              dein Konto anschließend frei.
+              Neue Benutzer müssen sich zuerst registrieren. Bereits registrierte Benutzer 
+              können sich direkt anmelden. Nach der Registrierung muss dein Account von einem 
+              Administrator freigeschaltet werden.
             </p>
 
-            <button
-              onClick={handleDiscordLogin}
-              disabled={loading}
-              className="xp-btn w-full flex items-center justify-center gap-3 py-2.5 text-sm font-bold disabled:opacity-50"
-            >
-              {loading ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-[#404040] border-t-transparent rounded-full animate-spin" />
-                  Connecting to Discord...
-                </>
-              ) : (
-                <>
-                  <DiscordIcon className="w-5 h-5" />
-                  Mit Discord Anmelden
-                </>
-              )}
-            </button>
-
-
+            <div className="flex gap-2">
+              <button
+                onClick={handleDiscordLogin}
+                disabled={loading}
+                className="xp-btn flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <span className="w-3 h-3 border-2 border-[#404040] border-t-transparent rounded-full animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <DiscordIcon className="w-4 h-4" />
+                    Anmelden
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => router.push('/register')}
+                className="xp-btn flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold"
+              >
+                <DiscordIcon className="w-4 h-4" />
+                Registrieren
+              </button>
+            </div>
           </div>
 
           {/* Status */}

@@ -52,49 +52,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (dataError) {
           console.error('Officer data error:', dataError);
           setOfficer(null);
-          setLoading(false);
-        } else if (data) {
-          // Officer found
-          setOfficer((data as unknown as Officer) || null);
-          setLoading(false);
         } else {
-          // Officer not found - this might be a new user
-          console.log('Officer not found for user:', nextUser.id, '- attempting client-side provisioning...');
-          setOfficer(null);
-          
-          // Try client-side provisioning
-          try {
-            const res = await fetch('/api/auth/provision');
-            const provisionData = await res.json();
-            console.log('Provisioning result:', provisionData);
-            
-            if (provisionData.success && provisionData.user) {
-              // Retry loading the officer
-              await new Promise(resolve => setTimeout(resolve, 500));
-              const { data: retryData } = await supabase
-                .from('user')
-                .select('id, firstname, lastname, badgenumber, rank, division, role, status')
-                .eq('id', nextUser.id)
-                .maybeSingle();
-              
-              if (retryData && isMounted) {
-                setOfficer((retryData as unknown as Officer) || null);
-                setLoading(false);
-                return;
-              }
-            }
-          } catch (e) {
-            console.error('Client-side provisioning failed:', e);
-          }
-          
-          setLoading(false);
+          setOfficer((data as unknown as Officer) || null);
         }
       } catch (e) {
         console.error('Exception loading officer:', e);
-        if (isMounted) {
-          setOfficer(null);
-          setLoading(false);
-        }
+        if (isMounted) setOfficer(null);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
