@@ -104,19 +104,22 @@ export default function OrgChartPage() {
           </span>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold text-[#0a246a] truncate leading-tight">
-            {officer.firstname} {officer.lastname}
-          </p>
-          {/* Rang direkt unter dem Namen */}
+          {/* Name und Badge-Nummer nebeneinander */}
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="text-xs font-bold text-[#0a246a] truncate leading-tight">
+              {officer.firstname} {officer.lastname}
+            </p>
+            {officer.badgenumber && (
+              <span className="text-[10px] text-[#808080] font-mono truncate">
+                #{officer.badgenumber}
+              </span>
+            )}
+          </div>
+
+          {/* Rang weiterhin direkt darunter */}
           <p className="text-[11px] font-bold text-[#404040] truncate mt-0.5">
             {rankTitle}
           </p>
-          {/* Badge Number (falls vorhanden) */}
-          {officer.badgenumber && (
-            <p className="text-[10px] text-[#808080] font-mono truncate mt-0.5">
-              #{officer.badgenumber}
-            </p>
-          )}
         </div>
       </div>
       {officer.division && officer.division.length > 0 && (
@@ -239,7 +242,7 @@ export default function OrgChartPage() {
                       >
                         {isExpanded(cmdKey) ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                         <Shield className="w-3.5 h-3.5" />
-                        <span className="flex-1 font-bold truncate">{div.name} CMD</span>
+                        <span className="flex-1 font-bold truncate">{div.name} Command</span>
                       </div>
 
                       {isExpanded(cmdKey) && (
@@ -290,7 +293,7 @@ export default function OrgChartPage() {
                               />
                             ))
                           ) : (
-                            <p className="text-[10px] text-[#808080] text-center italic my-auto">Keine Einheiten</p>
+                            <p className="text-[10px] text-[#808080] text-center italic my-auto">Vakant</p>
                           )}
                         </div>
                       )}

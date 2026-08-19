@@ -139,7 +139,11 @@ export default function OfficerDetailPage() {
   async function updateDisciplinePoints(delta: number) {
     if (!canEdit) return;
     setDipsSubmitting(true);
-    const newVal = Math.max(0, Math.min(10, dips + delta));
+
+    // Wir stellen sicher, dass dips definitiv eine Zahl ist, um String-Verkettung zu vermeiden
+    const currentDips = Number(dips) || 0;
+    const newVal = Math.max(0, Math.min(10, currentDips + delta));
+
     try {
       const { error } = await (supabase.from('user') as any).update({ discipline_points: newVal }).eq('id', officerId);
       if (error) {
@@ -206,22 +210,22 @@ export default function OfficerDetailPage() {
                 {officer.firstname?.[0] ?? '?'}{officer.lastname?.[0] ?? ''}
               </span>
             </div>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-base font-bold text-[#0a246a]">
-                  {officer.firstname} {officer.lastname}
-                </h1>
-                <p className="text-xs text-[#404040] font-mono mt-0.5">
-                  {getDisplayRank(officer, ranks)} {officer.badgenumber ? `| Badge #${officer.badgenumber}` : ''}
-                </p>
-                {officer.division && officer.division.length > 0 && (
-                  <p className="text-[10px] text-[#404040] font-mono mt-0.5">
-                    Division: {officer.division.join(', ')}
-                  </p>
-                )}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-base font-bold text-[#0a246a]">
+                {officer.firstname} {officer.lastname}
+              </h1>
+              <p className="text-xs text-[#404040] font-mono mt-0.5">
+                {getDisplayRank(officer, ranks)} {officer.badgenumber ? `| Badge #${officer.badgenumber}` : ''}
+              </p>
+              {officer.division && officer.division.length > 0 && (
                 <p className="text-[10px] text-[#404040] font-mono mt-0.5">
-                  Status: {officer.status || 'unknown'}
+                  Division: {officer.division.join(', ')}
                 </p>
-              </div>
+              )}
+              <p className="text-[10px] text-[#404040] font-mono mt-0.5">
+                Status: {officer.status || 'unknown'}
+              </p>
+            </div>
           </div>
         </div>
       </div>
