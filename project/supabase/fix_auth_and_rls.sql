@@ -18,6 +18,16 @@ DROP POLICY IF EXISTS "Allow authenticated update self" ON public.user;
 CREATE POLICY "Allow authenticated update self" ON public.user
   FOR UPDATE TO authenticated USING (auth.uid() = id);
 
+-- Admins und Supervisors können alle User verwalten
+DROP POLICY IF EXISTS "Allow admin/supervisor manage users" ON public.user;
+CREATE POLICY "Allow admin/supervisor manage users" ON public.user
+  FOR ALL TO authenticated USING (
+    EXISTS (
+      SELECT 1 FROM public.user u
+      WHERE u.id = auth.uid() AND u.role IN ('admin', 'supervisor')
+    )
+  );
+
 -- ============================================
 -- 2. RLS für messages Tabelle sicherstellen
 -- ============================================

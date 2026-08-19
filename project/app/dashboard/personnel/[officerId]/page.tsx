@@ -141,17 +141,23 @@ export default function OfficerDetailPage() {
     setDipsSubmitting(true);
 
     try {
-      // 1. (as any) hinzugefügt, um den TypeScript "never" Fehler zu beheben
+      console.log('[DIPS] Starting update for officer:', officerId, 'delta:', delta, 'current dips:', dips);
+
+      // 1. Fetch current discipline_points from DB
       const { data: dbUser, error: fetchErr } = await (supabase.from('user') as any)
         .select('discipline_points')
         .eq('id', officerId)
         .single();
 
+      console.log('[DIPS] Fetch result:', { dbUser, fetchErr });
+
       if (fetchErr) throw fetchErr;
 
-      // 2. Strikt als Zahl (Integer) parsen, Fallback auf 0 bei null
+      // 2. Parse and calculate new value
       const currentDips = parseInt(dbUser?.discipline_points || 0, 10);
       const newVal = Math.max(0, Math.min(10, currentDips + delta));
+
+      console.log('[DIPS] Calculated:', { currentDips, newVal });
 
       // Wenn der Wert durch das Limit (0-10) unverändert bleibt, brich sofort ab
       if (currentDips === newVal) {
@@ -159,24 +165,29 @@ export default function OfficerDetailPage() {
         return;
       }
 
-      // 3. Das Update an Supabase senden (ebenfalls mit as any)
-      const { error: updateErr } = await (supabase.from('user') as any)
+      // 3. Update in DB
+      const { error: updateErr, data: updated } = await (supabase.from('user') as any)
         .update({ discipline_points: newVal })
-        .eq('id', officerId);
+        .eq('id', officerId)
+        .select();
+
+      console.log('[DIPS] Update result:', { updateErr, updated });
 
       if (updateErr) {
-        console.error('Supabase Update Error Details:', updateErr);
+        console.error('[DIPS] Supabase Update Error:', updateErr);
         throw updateErr;
       }
 
-      // 4. UI erst updaten, wenn die DB es 100% akzeptiert hat
+      // 4. Update UI
       setDips(newVal);
+      console.log('[DIPS] UI updated to:', newVal);
 
     } catch (err: any) {
-      console.error('Discipline points update exception:', err);
+      console.error('[DIPS] Exception:', err);
       alert(`Fehler beim Speichern in der Datenbank: ${err.message || 'Unbekannter Fehler'}`);
     } finally {
       setDipsSubmitting(false);
+      console.log('[DIPS] dipsSubmitting set to false');
     }
   }
 
