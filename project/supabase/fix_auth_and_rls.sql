@@ -18,10 +18,19 @@ DROP POLICY IF EXISTS "Allow authenticated update self" ON public.user;
 CREATE POLICY "Allow authenticated update self" ON public.user
   FOR UPDATE TO authenticated USING (auth.uid() = id);
 
--- Admins und Supervisors können alle User verwalten
+-- Admins und Supervisors können alle User verwalten (ohne SELECT, damit die Lese-Policy erhalten bleibt)
 DROP POLICY IF EXISTS "Allow admin/supervisor manage users" ON public.user;
 CREATE POLICY "Allow admin/supervisor manage users" ON public.user
-  FOR ALL TO authenticated USING (
+  FOR UPDATE TO authenticated USING (
+    EXISTS (
+      SELECT 1 FROM public.user u
+      WHERE u.id = auth.uid() AND u.role IN ('admin', 'supervisor')
+    )
+  );
+
+DROP POLICY IF EXISTS "Allow admin/supervisor delete users" ON public.user;
+CREATE POLICY "Allow admin/supervisor delete users" ON public.user
+  FOR DELETE TO authenticated USING (
     EXISTS (
       SELECT 1 FROM public.user u
       WHERE u.id = auth.uid() AND u.role IN ('admin', 'supervisor')
