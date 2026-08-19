@@ -12,7 +12,6 @@ export default function OrgChartPage() {
   const [loading, setLoading] = useState(true);
   const [selectedDivision, setSelectedDivision] = useState<string>('all');
 
-  // State for collapsible windows
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -49,13 +48,11 @@ export default function OrgChartPage() {
       ranks.find(r => r.title?.toLowerCase() === String(officer.rank).toLowerCase());
   };
 
-  // Group officers by Level and Division
   const { deptCommand, divCommand, divOfficers } = useMemo(() => {
     const deptCmd: Officer[] = [];
     const divCmd: Record<string, Officer[]> = {};
     const divOffs: Record<string, Officer[]> = {};
 
-    // Initialize arrays for all divisions so columns always show up
     divisions.forEach(d => {
       divCmd[d.name] = [];
       divOffs[d.name] = [];
@@ -63,7 +60,7 @@ export default function OrgChartPage() {
 
     filteredOfficers.forEach(officer => {
       const rankDef = getRankForOfficer(officer);
-      const level = rankDef ? rankDef.level : 3; // Default to 3 if unknown
+      const level = rankDef ? rankDef.level : 3;
 
       const primaryDivision = Array.isArray(officer.division) && officer.division.length > 0
         ? officer.division[0]
@@ -78,7 +75,6 @@ export default function OrgChartPage() {
       }
     });
 
-    // Sort function by rank order_index
     const sortByRank = (a: Officer, b: Officer) => {
       const rA = getRankForOfficer(a)?.order_index ?? 999;
       const rB = getRankForOfficer(b)?.order_index ?? 999;
@@ -96,13 +92,13 @@ export default function OrgChartPage() {
     setExpandedSections(prev => ({ ...prev, [key]: prev[key] === false ? true : false }));
   };
 
-  const isExpanded = (key: string) => expandedSections[key] !== false; // Default to true
+  const isExpanded = (key: string) => expandedSections[key] !== false;
 
-  // Helper component for an Officer Card
-  const OfficerCard = ({ officer }: { officer: Officer }) => (
+  // Helfer-Komponente für Officer-Karte (nun mit rankTitle als Prop)
+  const OfficerCard = ({ officer, rankTitle }: { officer: Officer, rankTitle: string }) => (
     <div className="xp-panel p-3 bg-[#ece9d8] hover:bg-[#d4d0c8] transition-colors h-full flex flex-col">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="w-8 h-8 bg-[#0a246a] flex items-center justify-center xp-raised shrink-0">
+      <div className="flex items-start gap-2 mb-2">
+        <div className="w-8 h-8 bg-[#0a246a] flex items-center justify-center xp-raised shrink-0 mt-0.5">
           <span className="text-xs font-bold text-white">
             {officer.firstname?.[0] ?? '?'}{officer.lastname?.[0] ?? ''}
           </span>
@@ -111,13 +107,20 @@ export default function OrgChartPage() {
           <p className="text-xs font-bold text-[#0a246a] truncate leading-tight">
             {officer.firstname} {officer.lastname}
           </p>
-          <p className="text-[10px] text-[#404040] font-mono truncate">
-            {officer.badgenumber ? `#${officer.badgenumber}` : String(officer.rank || '')}
+          {/* Rang direkt unter dem Namen */}
+          <p className="text-[11px] font-bold text-[#404040] truncate mt-0.5">
+            {rankTitle}
           </p>
+          {/* Badge Number (falls vorhanden) */}
+          {officer.badgenumber && (
+            <p className="text-[10px] text-[#808080] font-mono truncate mt-0.5">
+              #{officer.badgenumber}
+            </p>
+          )}
         </div>
       </div>
       {officer.division && officer.division.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-auto">
+        <div className="flex flex-wrap gap-1 mt-auto pt-1">
           {officer.division.slice(0, 2).map((div: string) => (
             <span key={div} className="text-[10px] font-mono px-1 py-0.5 bg-[#d4d0c8] xp-sunken text-[#404040]">
               {div}
@@ -129,9 +132,9 @@ export default function OrgChartPage() {
   );
 
   return (
-    <div className="p-4 space-y-4 max-w-none inline-block min-w-full">
-      {/* Header Window */}
-      <div className="xp-window sticky top-4 z-10 shadow-md max-w-5xl">
+    <div className="p-4 space-y-4 max-w-full">
+      {/* Header Window - Fixiert auf maximale Breite der Ansicht */}
+      <div className="xp-window sticky top-4 z-10 shadow-md w-full">
         <div className="xp-titlebar">
           <Shield className="w-4 h-4" />
           <span className="flex-1 font-bold">RCPD Organigramm — Department Structure</span>
@@ -171,126 +174,143 @@ export default function OrgChartPage() {
           Loading Data...
         </div>
       ) : (
-        <div className="space-y-6">
+        /* Gemeinsamer Scroll-Container für Department und Divisions */
+        <div className="overflow-x-auto pb-6 w-full">
+          {/* w-max zwingt den Container, die exakte Breite der Grid-Inhalte anzunehmen */}
+          <div className="w-max min-w-full flex flex-col gap-6">
 
-          {/* LEVEL 1: Department Command (Full Width) */}
-          <div className="xp-window">
-            <div
-              className="xp-titlebar cursor-pointer"
-              onClick={() => toggleSection('dept-cmd')}
-            >
-              {isExpanded('dept-cmd') ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-              <Shield className="w-3.5 h-3.5" />
-              <span className="flex-1 font-bold">Department Command</span>
+            {/* LEVEL 1: Department Command (Nimmt nun exakt w-full des w-max Containers an) */}
+            <div className="xp-window w-full">
+              <div
+                className="xp-titlebar cursor-pointer"
+                onClick={() => toggleSection('dept-cmd')}
+              >
+                {isExpanded('dept-cmd') ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                <Shield className="w-3.5 h-3.5" />
+                <span className="flex-1 font-bold">Department Command</span>
+              </div>
+
+              {isExpanded('dept-cmd') && (
+                <div className="p-3 bg-[#ece9d8]">
+                  {deptCommand.length > 0 ? (
+                    <div className="flex flex-wrap gap-3">
+                      {deptCommand.map(officer => (
+                        <div key={officer.id} className="w-[240px]">
+                          <OfficerCard
+                            officer={officer}
+                            rankTitle={getRankForOfficer(officer)?.title || String(officer.rank || 'Officer')}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#808080] italic">Keine Einheiten im Department Command.</p>
+                  )}
+                </div>
+              )}
+
+              <button
+                onClick={() => toggleSection('dept-cmd')}
+                className="w-full xp-statusbar justify-center hover:bg-[#d4d0c8]"
+              >
+                <span className="text-[11px] text-[#404040]">
+                  {isExpanded('dept-cmd') ? '[-] Collapse' : '[+] Expand'}
+                </span>
+              </button>
             </div>
 
-            {isExpanded('dept-cmd') && (
-              <div className="p-3 bg-[#ece9d8]">
-                {deptCommand.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                    {deptCommand.map(officer => (
-                      <OfficerCard key={officer.id} officer={officer} />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-[#808080] italic">Keine Einheiten im Department Command.</p>
-                )}
-              </div>
-            )}
+            {/* LEVEL 2 & 3: Divisions Grid */}
+            <div className="flex gap-4 items-start">
+              {divisions.map((div) => {
+                const cmdOfficers = divCommand[div.name] || [];
+                const regOfficers = divOfficers[div.name] || [];
 
-            <button
-              onClick={() => toggleSection('dept-cmd')}
-              className="w-full xp-statusbar justify-center hover:bg-[#d4d0c8]"
-            >
-              <span className="text-[11px] text-[#404040]">
-                {isExpanded('dept-cmd') ? '[-] Collapse' : '[+] Expand'}
-              </span>
-            </button>
-          </div>
+                const cmdKey = `cmd-${div.id}`;
+                const offKey = `off-${div.id}`;
 
-          {/* LEVEL 2 & 3: Divisions Grid */}
-          <div className="flex gap-4 overflow-x-auto pb-4 items-start">
-            {divisions.map((div) => {
-              const cmdOfficers = divCommand[div.name] || [];
-              const regOfficers = divOfficers[div.name] || [];
+                return (
+                  <div key={div.id} className="flex flex-col gap-4 min-w-[240px] w-[240px]">
 
-              const cmdKey = `cmd-${div.id}`;
-              const offKey = `off-${div.id}`;
+                    {/* Division CMD (Level 2) Window */}
+                    <div className="xp-window flex-shrink-0">
+                      <div
+                        className="xp-titlebar cursor-pointer"
+                        onClick={() => toggleSection(cmdKey)}
+                      >
+                        {isExpanded(cmdKey) ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                        <Shield className="w-3.5 h-3.5" />
+                        <span className="flex-1 font-bold truncate">{div.name} CMD</span>
+                      </div>
 
-              return (
-                <div key={div.id} className="flex flex-col gap-4 min-w-[240px] w-[240px]">
+                      {isExpanded(cmdKey) && (
+                        <div className="p-3 bg-[#ece9d8] min-h-[80px] flex flex-col gap-3">
+                          {cmdOfficers.length > 0 ? (
+                            cmdOfficers.map(officer => (
+                              <OfficerCard
+                                key={officer.id}
+                                officer={officer}
+                                rankTitle={getRankForOfficer(officer)?.title || String(officer.rank || 'Officer')}
+                              />
+                            ))
+                          ) : (
+                            <p className="text-[10px] text-[#808080] text-center italic my-auto">Vakant</p>
+                          )}
+                        </div>
+                      )}
 
-                  {/* Division CMD (Level 2) Window */}
-                  <div className="xp-window flex-shrink-0">
-                    <div
-                      className="xp-titlebar cursor-pointer"
-                      onClick={() => toggleSection(cmdKey)}
-                    >
-                      {isExpanded(cmdKey) ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                      <Shield className="w-3.5 h-3.5" />
-                      <span className="flex-1 font-bold truncate">{div.name} CMD</span>
+                      <button
+                        onClick={() => toggleSection(cmdKey)}
+                        className="w-full xp-statusbar justify-center hover:bg-[#d4d0c8]"
+                      >
+                        <span className="text-[11px] text-[#404040]">
+                          {isExpanded(cmdKey) ? '[-] Collapse' : '[+] Expand'}
+                        </span>
+                      </button>
                     </div>
 
-                    {isExpanded(cmdKey) && (
-                      <div className="p-3 bg-[#ece9d8] min-h-[80px] flex flex-col gap-3">
-                        {cmdOfficers.length > 0 ? (
-                          cmdOfficers.map(officer => (
-                            <OfficerCard key={officer.id} officer={officer} />
-                          ))
-                        ) : (
-                          <p className="text-[10px] text-[#808080] text-center italic my-auto">Vakant</p>
-                        )}
+                    {/* Division Officers (Level 3+) Window */}
+                    <div className="xp-window flex-shrink-0 flex-1">
+                      <div
+                        className="xp-titlebar cursor-pointer"
+                        onClick={() => toggleSection(offKey)}
+                      >
+                        {isExpanded(offKey) ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                        <Shield className="w-3.5 h-3.5" />
+                        <span className="flex-1 font-bold truncate">{div.name} ({regOfficers.length})</span>
                       </div>
-                    )}
 
-                    <button
-                      onClick={() => toggleSection(cmdKey)}
-                      className="w-full xp-statusbar justify-center hover:bg-[#d4d0c8]"
-                    >
-                      <span className="text-[11px] text-[#404040]">
-                        {isExpanded(cmdKey) ? '[-] Collapse' : '[+] Expand'}
-                      </span>
-                    </button>
-                  </div>
+                      {isExpanded(offKey) && (
+                        <div className="p-3 bg-[#ece9d8] min-h-[80px] flex flex-col gap-3 h-full">
+                          {regOfficers.length > 0 ? (
+                            regOfficers.map(officer => (
+                              <OfficerCard
+                                key={officer.id}
+                                officer={officer}
+                                rankTitle={getRankForOfficer(officer)?.title || String(officer.rank || 'Officer')}
+                              />
+                            ))
+                          ) : (
+                            <p className="text-[10px] text-[#808080] text-center italic my-auto">Keine Einheiten</p>
+                          )}
+                        </div>
+                      )}
 
-                  {/* Division Officers (Level 3+) Window */}
-                  <div className="xp-window flex-shrink-0 flex-1">
-                    <div
-                      className="xp-titlebar cursor-pointer"
-                      onClick={() => toggleSection(offKey)}
-                    >
-                      {isExpanded(offKey) ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                      <Shield className="w-3.5 h-3.5" />
-                      <span className="flex-1 font-bold truncate">{div.name} ({regOfficers.length})</span>
+                      <button
+                        onClick={() => toggleSection(offKey)}
+                        className="w-full xp-statusbar mt-auto justify-center hover:bg-[#d4d0c8]"
+                      >
+                        <span className="text-[11px] text-[#404040]">
+                          {isExpanded(offKey) ? '[-] Collapse' : '[+] Expand'}
+                        </span>
+                      </button>
                     </div>
 
-                    {isExpanded(offKey) && (
-                      <div className="p-3 bg-[#ece9d8] min-h-[80px] flex flex-col gap-3 h-full">
-                        {regOfficers.length > 0 ? (
-                          regOfficers.map(officer => (
-                            <OfficerCard key={officer.id} officer={officer} />
-                          ))
-                        ) : (
-                          <p className="text-[10px] text-[#808080] text-center italic my-auto">Keine Einheiten</p>
-                        )}
-                      </div>
-                    )}
-
-                    <button
-                      onClick={() => toggleSection(offKey)}
-                      className="w-full xp-statusbar mt-auto justify-center hover:bg-[#d4d0c8]"
-                    >
-                      <span className="text-[11px] text-[#404040]">
-                        {isExpanded(offKey) ? '[-] Collapse' : '[+] Expand'}
-                      </span>
-                    </button>
                   </div>
+                );
+              })}
+            </div>
 
-                </div>
-              );
-            })}
           </div>
-
         </div>
       )}
     </div>
