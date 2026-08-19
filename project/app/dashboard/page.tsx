@@ -23,7 +23,8 @@ export default function DashboardPage() {
       const [{ data: offs }, { count }, { data: evts }, { data: rankDefs }] = await Promise.all([
         supabase.from('user').select('*'),
         supabase.from('messages').select('*', { count: 'exact', head: true })
-          .eq('receiver_id', officer?.id ?? ''),
+          .eq('receiver_id', officer?.id ?? '')
+          .eq('read', false),
         supabase.from('events').select('*').gte('date', new Date().toISOString()).order('date').limit(5),
         supabase.from('rank_definitions').select('id, title, order_index'),
       ]);

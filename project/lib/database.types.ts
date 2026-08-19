@@ -65,6 +65,7 @@ export interface Database {
           receiver_id: string;
           subject: string;
           body: string;
+          read: boolean;
         };
         Insert: {
           id?: string;
@@ -73,6 +74,7 @@ export interface Database {
           receiver_id: string;
           subject: string;
           body: string;
+          read?: boolean;
         };
         Update: {
           id?: string;
@@ -81,6 +83,7 @@ export interface Database {
           receiver_id?: string;
           subject?: string;
           body?: string;
+          read?: boolean;
         };
       };
       personnel_files: {

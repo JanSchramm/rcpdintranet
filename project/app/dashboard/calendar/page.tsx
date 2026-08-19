@@ -55,7 +55,16 @@ export default function CalendarPage() {
   const [submitting, setSubmitting] = useState(false);
 
   async function loadEvents() {
-    const { data } = await supabase.from('events').select('*').order('date');
+    // Supabase Join: Holt alle Event-Daten UND den Vor-/Nachnamen des Erstellers
+    const { data, error } = await supabase
+      .from('events')
+      .select('*, user(firstname, lastname)')
+      .order('date');
+
+    if (error) {
+      console.error('Error fetching events with creator:', error);
+    }
+
     setEvents(data ?? []);
     setLoading(false);
   }
@@ -310,6 +319,12 @@ export default function CalendarPage() {
                           <p className="text-[11px] text-[#404040] font-mono leading-relaxed">{e.description}</p>
                         </div>
                       )}
+
+                      {/* Ersteller-Anzeige hier hinzugefügt */}
+                      <div className="mt-2 pt-2 border-t border-[#d4d0c8] text-[9px] text-[#808080] font-mono">
+                        Erstellt von: {(e as any).user ? `${(e as any).user.firstname} ${(e as any).user.lastname}` : 'Unbekannt'}
+                      </div>
+
                     </div>
                     {canEditEvent(e) && (
                       <div className="flex gap-1 shrink-0">

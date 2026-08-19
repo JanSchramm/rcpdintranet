@@ -54,12 +54,23 @@ export default function MessagesPage() {
     setLoading(false);
   }
 
+  async function markAsRead(msg: MessageWithOfficers) {
+    if (!user || msg.receiver_id !== user.id || msg.read) return;
+    await (supabase.from('messages') as any)
+      .update({ read: true })
+      .eq('id', msg.id);
+    setMessages((prev) =>
+      prev.map((m) => (m.id === msg.id ? { ...m, read: true } : m))
+    );
+  }
+
   useEffect(() => {
     loadMessages();
   }, [user]);
 
   const inbox = messages.filter((m) => m.receiver_id === user?.id);
   const sent = messages.filter((m) => m.sender_id === user?.id);
+  const unreadCount = inbox.filter((m) => !m.read).length;
   const displayed = tab === 'inbox' ? inbox : sent;
 
   async function handleSend() {
@@ -189,7 +200,10 @@ export default function MessagesPage() {
                   return (
                     <button
                       key={msg.id}
-                      onClick={() => setSelected(msg)}
+                      onClick={() => {
+                        setSelected(msg);
+                        markAsRead(msg);
+                      }}
                       className={`xp-list-item w-full text-left border-b border-[#d4d0c8] last:border-b-0 ${isSelected ? 'xp-list-item-selected' : ''
                         }`}
                     >
@@ -200,14 +214,14 @@ export default function MessagesPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-bold truncate">
+                          <p className={`text-xs font-bold truncate ${!msg.read ? 'text-[#0a246a]' : 'text-[#404040]'}`}>
                             {contact ? `${contact.firstname} ${contact.lastname}` : 'Unknown'}
                           </p>
                           <span className="text-[10px] text-[#808080] font-mono shrink-0">
                             {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
                           </span>
                         </div>
-                        <p className="text-[11px] font-medium truncate">{msg.subject}</p>
+                        <p className={`text-[11px] truncate ${!msg.read ? 'font-bold text-[#000000]' : 'text-[#404040]'}`}>{msg.subject}</p>
                         <p className="text-[10px] text-[#808080] font-mono truncate">{msg.body}</p>
                       </div>
                     </button>
