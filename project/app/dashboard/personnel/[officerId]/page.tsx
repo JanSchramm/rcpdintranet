@@ -140,21 +140,42 @@ export default function OfficerDetailPage() {
     if (!canEdit) return;
     setDipsSubmitting(true);
 
-    // Wir stellen sicher, dass dips definitiv eine Zahl ist, um String-Verkettung zu vermeiden
-    const currentDips = Number(dips) || 0;
-    const newVal = Math.max(0, Math.min(10, currentDips + delta));
-
     try {
-      const { error } = await (supabase.from('user') as any).update({ discipline_points: newVal }).eq('id', officerId);
-      if (error) {
-        console.error('Failed to update discipline points:', error);
+      // 1. (as any) hinzugefügt, um den TypeScript "never" Fehler zu beheben
+      const { data: dbUser, error: fetchErr } = await (supabase.from('user') as any)
+        .select('discipline_points')
+        .eq('id', officerId)
+        .single();
+
+      if (fetchErr) throw fetchErr;
+
+      // 2. Strikt als Zahl (Integer) parsen, Fallback auf 0 bei null
+      const currentDips = parseInt(dbUser?.discipline_points || 0, 10);
+      const newVal = Math.max(0, Math.min(10, currentDips + delta));
+
+      // Wenn der Wert durch das Limit (0-10) unverändert bleibt, brich sofort ab
+      if (currentDips === newVal) {
         setDipsSubmitting(false);
         return;
       }
+
+      // 3. Das Update an Supabase senden (ebenfalls mit as any)
+      const { error: updateErr } = await (supabase.from('user') as any)
+        .update({ discipline_points: newVal })
+        .eq('id', officerId);
+
+      if (updateErr) {
+        console.error('Supabase Update Error Details:', updateErr);
+        throw updateErr;
+      }
+
+      // 4. UI erst updaten, wenn die DB es 100% akzeptiert hat
       setDips(newVal);
-      setDipsSubmitting(false);
+
     } catch (err: any) {
       console.error('Discipline points update exception:', err);
+      alert(`Fehler beim Speichern in der Datenbank: ${err.message || 'Unbekannter Fehler'}`);
+    } finally {
       setDipsSubmitting(false);
     }
   }
