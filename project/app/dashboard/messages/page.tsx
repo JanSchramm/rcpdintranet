@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Message, Officer } from '@/lib/database.types';
 import { useAuth } from '@/contexts/AuthContext';
-import { MessageSquare, Send, Inbox, ChevronDown, ArrowLeft, Shield } from 'lucide-react';
+import { MessageSquare, Send, Inbox, ChevronDown, ArrowLeft, Shield, Mail, MailOpen, Trash2 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { getDisplayRank } from '@/lib/utils';
 
@@ -20,6 +20,8 @@ export default function MessagesPage() {
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [selected, setSelected] = useState<MessageWithOfficers | null>(null);
   const [loading, setLoading] = useState(true);
+  const [actionError, setActionError] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
   const [showCompose, setShowCompose] = useState(false);
   const [ranks, setRanks] = useState<Array<{ id?: string; title?: string; order_index?: number }>>([]);
 
@@ -30,7 +32,7 @@ export default function MessagesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [toDropOpen, setToDropOpen] = useState(false);
 
-  async function loadMessages() {
+  const loadMessages = useCallback(async () => {
     if (!user) return;
     const [{ data: msgs }, { data: offs }, { data: rankDefs }] = await Promise.all([
       supabase.from('messages').select('*').order('created_at', { ascending: false }),
@@ -52,21 +54,59 @@ export default function MessagesPage() {
     );
     setOfficers(fetchedOffs.filter((o) => o.id !== user.id));
     setLoading(false);
+  }, [user]);
+
+  async function updateReadStatus(msg: MessageWithOfficers, read: boolean) {
+    if (!user || msg.receiver_id !== user.id || msg.read === read) return;
+
+    setActionError('');
+    setActionLoading(true);
+    const { data, error } = await supabase
+      .from('messages')
+      .update({ read })
+      .eq('id', msg.id)
+      .eq('receiver_id', user.id)
+      .select('id')
+      .maybeSingle();
+    setActionLoading(false);
+
+    if (error || !data) {
+      setActionError(error?.message ?? 'Message could not be updated.');
+      return;
+    }
+
+    setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, read } : m)));
+    setSelected((current) => current?.id === msg.id ? { ...current, read } : current);
   }
 
-  async function markAsRead(msg: MessageWithOfficers) {
-    if (!user || msg.receiver_id !== user.id || msg.read) return;
-    await (supabase.from('messages') as any)
-      .update({ read: true })
-      .eq('id', msg.id);
-    setMessages((prev) =>
-      prev.map((m) => (m.id === msg.id ? { ...m, read: true } : m))
-    );
+  async function deleteMessage(msg: MessageWithOfficers) {
+    if (!user || (msg.sender_id !== user.id && msg.receiver_id !== user.id)) return;
+    if (!window.confirm('Are you sure you want to delete this message?')) return;
+
+    setActionError('');
+    setActionLoading(true);
+    const ownerColumn = msg.sender_id === user.id ? 'sender_id' : 'receiver_id';
+    const { data, error } = await supabase
+      .from('messages')
+      .delete()
+      .eq('id', msg.id)
+      .eq(ownerColumn, user.id)
+      .select('id')
+      .maybeSingle();
+    setActionLoading(false);
+
+    if (error || !data) {
+      setActionError(error?.message ?? 'Message could not be deleted.');
+      return;
+    }
+
+    setMessages((prev) => prev.filter((message) => message.id !== msg.id));
+    setSelected(null);
   }
 
   useEffect(() => {
     loadMessages();
-  }, [user]);
+  }, [loadMessages]);
 
   const inbox = messages.filter((m) => m.receiver_id === user?.id);
   const sent = messages.filter((m) => m.sender_id === user?.id);
@@ -161,6 +201,12 @@ export default function MessagesPage() {
         </div>
       </div>
 
+      {actionError && (
+        <div role="alert" className="xp-sunken bg-[#fff0f0] p-2 text-xs text-[#cc0000] font-mono">
+          {actionError}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
         {/* Message list */}
         <div className={`lg:col-span-2 space-y-1 ${selected ? 'hidden lg:block' : ''}`}>
@@ -202,7 +248,7 @@ export default function MessagesPage() {
                       key={msg.id}
                       onClick={() => {
                         setSelected(msg);
-                        markAsRead(msg);
+                        void updateReadStatus(msg, true);
                       }}
                       className={`xp-list-item w-full text-left border-b border-[#d4d0c8] last:border-b-0 ${isSelected ? 'xp-list-item-selected' : ''
                         }`}
@@ -214,14 +260,14 @@ export default function MessagesPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <p className={`text-xs font-bold truncate ${!msg.read ? 'text-[#0a246a]' : 'text-[#404040]'}`}>
+                          <p className={`text-xs font-bold truncate ${tab === 'inbox' && !msg.read ? 'text-[#0a246a]' : 'text-[#404040]'}`}>
                             {contact ? `${contact.firstname} ${contact.lastname}` : 'Unknown'}
                           </p>
                           <span className="text-[10px] text-[#808080] font-mono shrink-0">
                             {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
                           </span>
                         </div>
-                        <p className={`text-[11px] truncate ${!msg.read ? 'font-bold text-[#000000]' : 'text-[#404040]'}`}>{msg.subject}</p>
+                        <p className={`text-[11px] truncate ${tab === 'inbox' && !msg.read ? 'font-bold text-[#000000]' : 'text-[#404040]'}`}>{msg.subject}</p>
                         <p className="text-[10px] text-[#808080] font-mono truncate">{msg.body}</p>
                       </div>
                     </button>
@@ -246,6 +292,26 @@ export default function MessagesPage() {
                   </button>
                   <Shield className="w-3.5 h-3.5" />
                   <span className="flex-1 text-xs truncate">{selected.subject}</span>
+                </div>
+                <div className="flex items-center justify-end gap-2 px-2 py-1 bg-[#d4d0c8] border-b border-[#808080]">
+                  {selected.receiver_id === user?.id && (
+                    <button
+                      onClick={() => void updateReadStatus(selected, !selected.read)}
+                      disabled={actionLoading}
+                      className="xp-btn flex items-center gap-1.5 text-xs disabled:opacity-50"
+                    >
+                      {selected.read ? <Mail className="w-3 h-3" /> : <MailOpen className="w-3 h-3" />}
+                      Mark as {selected.read ? 'unread' : 'read'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => void deleteMessage(selected)}
+                    disabled={actionLoading}
+                    className="xp-btn flex items-center gap-1.5 text-xs disabled:opacity-50"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Delete
+                  </button>
                 </div>
                 <div className="p-4 bg-[#ece9d8] space-y-3 flex-1 overflow-y-auto">
                   {/* Message header */}

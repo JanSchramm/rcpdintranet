@@ -56,6 +56,15 @@ export interface Database {
           discipline_points?: number;
           rank_id?: string | null;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'user_rank_id_fkey';
+            columns: ['rank_id'];
+            isOneToOne: false;
+            referencedRelation: 'rank_definitions';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       messages: {
         Row: {
@@ -85,6 +94,7 @@ export interface Database {
           body?: string;
           read?: boolean;
         };
+        Relationships: [];
       };
       personnel_files: {
         Row: {
@@ -111,6 +121,7 @@ export interface Database {
           title?: string;
           notes?: string;
         };
+        Relationships: [];
       };
       events: {
         Row: {
@@ -140,6 +151,15 @@ export interface Database {
           created_at?: string;
           created_by?: string | null;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'events_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'user';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       rank_definitions: {
         Row: {
@@ -169,6 +189,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       divisions: {
         Row: {
@@ -195,6 +216,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
@@ -209,7 +231,7 @@ export interface Officer {
   firstname: string;
   lastname: string;
   rank: string;
-  badgenumber?: string;
+  badgenumber?: string | null;
   division?: string[];
   role?: 'officer' | 'admin' | 'supervisor';
   status?: 'pending' | 'approved' | 'rejected';

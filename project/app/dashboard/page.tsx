@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import { getDisplayRank } from '@/lib/utils';
 
 export default function DashboardPage() {
-  const { officer } = useAuth();
+  const { officer, user } = useAuth();
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [upcomingEvents, setUpcomingEvents] = useState<RosterEvent[]>([]);
@@ -23,7 +23,7 @@ export default function DashboardPage() {
       const [{ data: offs }, { count }, { data: evts }, { data: rankDefs }] = await Promise.all([
         supabase.from('user').select('*'),
         supabase.from('messages').select('*', { count: 'exact', head: true })
-          .eq('receiver_id', officer?.id ?? '')
+          .eq('receiver_id', user?.id ?? '')
           .eq('read', false),
         supabase.from('events').select('*').gte('date', new Date().toISOString()).order('date').limit(5),
         supabase.from('rank_definitions').select('id, title, order_index'),
@@ -36,12 +36,12 @@ export default function DashboardPage() {
       setLoading(false);
     }
     if (officer) load();
-  }, [officer]);
+  }, [officer, user]);
 
   const stats = [
     { label: 'Officers', value: officers.length, icon: Users, href: '/dashboard/org' },
     { label: 'Events', value: upcomingEvents.length, icon: Calendar, href: '/dashboard/calendar' },
-    { label: 'Messages', value: unreadCount, icon: MessageSquare, href: '/dashboard/messages' },
+    { label: 'Unread Messages', value: unreadCount, icon: MessageSquare, href: '/dashboard/messages' },
   ];
 
   const eventTypeColors: Record<string, string> = {
