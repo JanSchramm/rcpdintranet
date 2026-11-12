@@ -244,33 +244,65 @@ export default function MessagesPage() {
                   const contact = tab === 'inbox' ? msg.sender : msg.receiver;
                   const isSelected = selected?.id === msg.id;
                   return (
-                    <button
+                    <div
                       key={msg.id}
-                      onClick={() => {
-                        setSelected(msg);
-                        void updateReadStatus(msg, true);
-                      }}
-                      className={`xp-list-item w-full text-left border-b border-[#d4d0c8] last:border-b-0 ${isSelected ? 'xp-list-item-selected' : ''
+                      className={`xp-list-item w-full border-b border-[#d4d0c8] last:border-b-0 ${isSelected ? 'xp-list-item-selected' : ''
                         }`}
                     >
-                      <div className="w-7 h-7 bg-[#0a246a] flex items-center justify-center xp-raised shrink-0">
-                        <span className="text-[10px] font-bold text-white">
-                          {contact?.firstname?.[0] ?? '?'}{contact?.lastname?.[0] ?? ''}
-                        </span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className={`text-xs font-bold truncate ${tab === 'inbox' && !msg.read ? 'text-[#0a246a]' : 'text-[#404040]'}`}>
-                            {contact ? `${contact.firstname} ${contact.lastname}` : 'Unknown'}
-                          </p>
-                          <span className="text-[10px] text-[#808080] font-mono shrink-0">
-                            {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelected(msg);
+                          void updateReadStatus(msg, true);
+                        }}
+                        className="min-w-0 flex-1 flex items-center gap-2 text-left"
+                        aria-label={`Open message: ${msg.subject}`}
+                      >
+                        <div className="w-7 h-7 bg-[#0a246a] flex items-center justify-center xp-raised shrink-0">
+                          <span className="text-[10px] font-bold text-white">
+                            {contact?.firstname?.[0] ?? '?'}{contact?.lastname?.[0] ?? ''}
                           </span>
                         </div>
-                        <p className={`text-[11px] truncate ${tab === 'inbox' && !msg.read ? 'font-bold text-[#000000]' : 'text-[#404040]'}`}>{msg.subject}</p>
-                        <p className="text-[10px] text-[#808080] font-mono truncate">{msg.body}</p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className={`text-xs font-bold truncate ${tab === 'inbox' && !msg.read ? 'text-[#0a246a]' : 'text-[#404040]'}`}>
+                              {contact ? `${contact.firstname} ${contact.lastname}` : 'Unknown'}
+                            </p>
+                            <span className="text-[10px] text-[#808080] font-mono shrink-0">
+                              {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                            </span>
+                          </div>
+                          <p className={`text-[11px] truncate ${tab === 'inbox' && !msg.read ? 'font-bold text-[#000000]' : 'text-[#404040]'}`}>{msg.subject}</p>
+                          <p className="text-[10px] text-[#808080] font-mono truncate">{msg.body}</p>
+                        </div>
+                      </button>
+                      <div className="flex shrink-0 items-center gap-1">
+                        {msg.receiver_id === user?.id && (
+                          <button
+                            type="button"
+                            onClick={() => void updateReadStatus(msg, !msg.read)}
+                            disabled={actionLoading}
+                            aria-label={`Mark message ${msg.read ? 'unread' : 'read'}`}
+                            title={`Mark as ${msg.read ? 'unread' : 'read'}`}
+                            className="xp-btn flex items-center gap-1 text-[10px] px-1.5 py-1 disabled:opacity-50"
+                          >
+                            {msg.read ? <Mail className="w-3 h-3" /> : <MailOpen className="w-3 h-3" />}
+                            <span>{msg.read ? 'Unread' : 'Read'}</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => void deleteMessage(msg)}
+                          disabled={actionLoading}
+                          aria-label="Delete message"
+                          title="Delete message"
+                          className="xp-btn flex items-center gap-1 text-[10px] px-1.5 py-1 disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Delete</span>
+                        </button>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

@@ -13,6 +13,7 @@ export default function DashboardPage() {
   const { officer, user } = useAuth();
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCountError, setUnreadCountError] = useState('');
   const [upcomingEvents, setUpcomingEvents] = useState<RosterEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [ranks, setRanks] = useState<Array<{ id?: string; title?: string; order_index?: number }>>([]);
@@ -20,16 +21,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function load() {
-      const [{ data: offs }, { count }, { data: evts }, { data: rankDefs }] = await Promise.all([
+      const [{ data: offs }, { data: evts }, { data: rankDefs }] = await Promise.all([
         supabase.from('user').select('*'),
-        supabase.from('messages').select('*', { count: 'exact', head: true })
-          .eq('receiver_id', user?.id ?? '')
-          .eq('read', false),
         supabase.from('events').select('*').gte('date', new Date().toISOString()).order('date').limit(5),
         supabase.from('rank_definitions').select('id, title, order_index'),
       ]);
       setOfficers(offs ?? []);
-      setUnreadCount(count ?? 0);
       setUpcomingEvents(evts ?? []);
       if (rankDefs) setRanks(rankDefs);
       setRanksLoading(false);
@@ -37,6 +34,54 @@ export default function DashboardPage() {
     }
     if (officer) load();
   }, [officer, user]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let active = true;
+    const refreshUnreadCount = async () => {
+      const { count, error } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('receiver_id', user.id)
+        .eq('read', false);
+
+      if (!active) return;
+      if (error) {
+        console.error('Unread message count error:', error);
+        setUnreadCountError(error.message);
+        return;
+      }
+
+      setUnreadCount(count ?? 0);
+      setUnreadCountError('');
+    };
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void refreshUnreadCount();
+    };
+
+    void refreshUnreadCount();
+    const intervalId = window.setInterval(refreshUnreadCount, 15000);
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    const channel = supabase
+      .channel(`dashboard-messages-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
+        refreshUnreadCount
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      void supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   const stats = [
     { label: 'Officers', value: officers.length, icon: Users, href: '/dashboard/org' },
@@ -104,6 +149,11 @@ export default function DashboardPage() {
           </Link>
         ))}
       </div>
+      {unreadCountError && (
+        <p role="alert" className="text-xs text-[#cc0000] font-mono">
+          Could not refresh unread message count: {unreadCountError}
+        </p>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Upcoming Events Window */}
